@@ -10,6 +10,8 @@ A redesign of the first-run flow in the Carousel Studio Canva app, built only wi
 | `App.tsx` | The source to drop into the dev app. |
 | `preview/` | The local project used to build and check it (Vite + React). |
 
+**Live prototype:** https://carousel-studio-ftue.vercel.app (opens on the newest version; switch with the dropdown at the top right)
+
 ## Three versions
 
 A dropdown at the top right of the prototype switches between them. It opens on the newest.
