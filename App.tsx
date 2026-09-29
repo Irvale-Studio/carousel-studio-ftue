@@ -22,7 +22,7 @@ import {
   AppUiProvider, Rows, Columns, Column, Box, Text, Title, Button, Alert, Badge,
   Tabs, TabList, Tab, TabPanels, TabPanel, FormField, MultilineInput, NumberInput,
   TextInput, Select, RadioGroup, Checkbox, FileInput, Swatch, Link, LinkButton,
-  ProgressBar, Avatar, SurfaceHeader, Scrollable, ImageCard,
+  ProgressBar, Avatar, SurfaceHeader, Scrollable, ImageCard, LoadingIndicator,
 } from "@canva/app-ui-kit";
 import {
   ArrowLeftIcon, ArrowRightIcon, CheckIcon, CogIcon, LightBulbIcon, PlusIcon, PremiumAppsProgramProFilledGoldIcon, StarFilledIcon, StarIcon,
@@ -43,12 +43,17 @@ const V2_START_CREDITS = 15;
  *      V2_START_CREDITS; running low or short pushes them to connect Google for FREE_CREDITS more.
  * v3 = Credits straight away, prompt for Pro after: the same start; running low or short
  *      pushes them to upgrade to Pro instead.
+ * v4 = Credit limit paywall flow: the same start as v3 (the live backend since 25 Sep). The
+ *      credit limit is where trials come from, so it opens an in-app paywall instead of sending
+ *      the user straight to the website: it sells the trial, says checkout opens in a new tab,
+ *      keeps the outline, waits for the trial to land, then returns the user to Create design.
  */
-export type Version = "v1" | "v2" | "v3";
+export type Version = "v1" | "v2" | "v3" | "v4";
 
 // Never translate credits into "N carousels": the cost varies with slides, model and images.
 
-export type Step = "create" | "connect" | "genOutline" | "review" | "genSlides" | "success" | "recent";
+export type Step =
+  | "create" | "connect" | "genOutline" | "review" | "genSlides" | "success" | "recent" | "paywall" | "checkout";
 type Recent = { title: string; date: string };
 
 const INSPIRE = [
@@ -130,14 +135,24 @@ export function App() {
 
 /** Canva gives the app the full panel height; content scrolls inside it. */
 export function CarouselStudio({
-  version = "v3", initialTab = "create", initialStep = "create", initialAccount, openUrl: open = openInNewTab,
-}: { version?: Version; initialTab?: string; initialStep?: Step; initialAccount?: Account; openUrl?: OpenUrl }) {
+  version = "v4", initialTab = "create", initialStep = "create", initialAccount, initialCredits, openUrl: open = openInNewTab,
+}: {
+  version?: Version; initialTab?: string; initialStep?: Step; initialAccount?: Account; initialCredits?: number;
+  openUrl?: OpenUrl;
+}) {
   openUrl = open;
   return (
     <Box height="full">
       <Scrollable>
         <Box height="full" paddingX="2u" paddingY="2u">
-          <Screens key={version} version={version} initialTab={initialTab} initialStep={initialStep} initialAccount={initialAccount} />
+          <Screens
+            key={version}
+            version={version}
+            initialTab={initialTab}
+            initialStep={initialStep}
+            initialAccount={initialAccount}
+            initialCredits={initialCredits}
+          />
         </Box>
       </Scrollable>
     </Box>
@@ -145,18 +160,26 @@ export function CarouselStudio({
 }
 
 function Screens({
-  version, initialTab, initialStep, initialAccount,
-}: { version: Version; initialTab: string; initialStep: Step; initialAccount?: Account }) {
-  const starter = version !== "v1"; // v2 and v3 start every user with credits
+  version, initialTab, initialStep, initialAccount, initialCredits,
+}: { version: Version; initialTab: string; initialStep: Step; initialAccount?: Account; initialCredits?: number }) {
+  const starter = version !== "v1"; // v2, v3 and v4 start every user with credits
   const [loggedIn, setLoggedIn] = useState(initialAccount !== undefined);
   const [plan, setPlan] = useState<Plan>(initialAccount?.plan ?? "free");
-  const [credits, setCredits] = useState(initialAccount?.credits ?? (starter ? V2_START_CREDITS : 0));
-  // Balance before the Google connect credits landed; drives the count-up. null = nothing to show.
+  // True while on the Pro free trial: the trial's credits are a starter amount, not a low balance.
+  const [trial, setTrial] = useState(false);
+  const [credits, setCredits] = useState(
+    initialAccount?.credits ?? initialCredits ?? (starter ? V2_START_CREDITS : 0),
+  );
+  // Balance before new credits landed (Google connect or trial); drives the count-up. null = nothing to show.
   const [creditedFrom, setCreditedFrom] = useState<number | null>(null);
+  const [creditedNote, setCreditedNote] = useState(`${FREE_CREDITS} free credits added to your account.`);
   const [topicError, setTopicError] = useState(false);
   const [step, setStep] = useState<Step>(initialStep);
   const [tab, setTab] = useState(initialTab);
-  const [connectReturn, setConnectReturn] = useState<Step>("create");
+  // Where Connect, the paywall and checkout return to.
+  const [connectReturn, setConnectReturn] = useState<Step>(
+    initialStep === "paywall" || initialStep === "checkout" ? "review" : "create",
+  );
   const [topic, setTopic] = useState("");
   const [inspireIndex, setInspireIndex] = useState(0);
   const [slides, setSlides] = useState(5);
@@ -179,6 +202,7 @@ function Screens({
   function connect() {
     setLoggedIn(true);
     setCreditedFrom(credits); // plays the credit delivery on the screen the user returns to
+    setCreditedNote(`${FREE_CREDITS} free credits added to your account.`);
     setCredits(credits + FREE_CREDITS);
     setStep(connectReturn);
   }
@@ -194,7 +218,28 @@ function Screens({
     openExternal(PRICING_URL);
     setLoggedIn(true);
     setPlan("pro");
+    setTrial(true);
     setCredits((c) => c + TRIAL_CREDITS);
+  }
+
+  // v4: every upgrade entry point opens the in-app paywall first.
+  const upgradeFrom = (from: Step) =>
+    version === "v4" ? () => { setConnectReturn(from); setStep("paywall"); } : startTrial;
+
+  // v4 checkout: the website opens in a new tab and the panel waits. In the app the trial arrives
+  // from the backend (poll or webhook); the preview's "I've started my trial" stands in for it.
+  function openCheckout() {
+    openExternal(PRICING_URL);
+    setStep("checkout");
+  }
+  function trialStarted() {
+    setLoggedIn(true);
+    setPlan("pro");
+    setTrial(true);
+    setCreditedFrom(credits);
+    setCreditedNote(`Your Pro trial has started. ${TRIAL_CREDITS} credits added.`);
+    setCredits(credits + TRIAL_CREDITS);
+    setStep(connectReturn);
   }
 
   function inspire() {
@@ -208,6 +253,27 @@ function Screens({
       <ConnectScreen
         onConnect={connect}
         onCancel={() => setStep(connectReturn)}
+      />
+    );
+  }
+  if (step === "paywall") {
+    return (
+      <Paywall
+        credits={credits}
+        outlineSaved={connectReturn === "review"}
+        onStartTrial={openCheckout}
+        onCompare={() => openExternal(PRICING_URL)}
+        onBack={() => setStep(connectReturn)}
+      />
+    );
+  }
+  if (step === "checkout") {
+    return (
+      <Checkout
+        outlineSaved={connectReturn === "review"}
+        onTrialStarted={trialStarted}
+        onReopen={() => openExternal(PRICING_URL)}
+        onCancel={() => setStep("paywall")}
       />
     );
   }
@@ -228,10 +294,11 @@ function Screens({
         visuals={visuals}
         onVisuals={setVisuals}
         justCredited={creditedFrom !== null}
+        creditedNote={creditedNote}
         onDismissCredited={() => setCreditedFrom(null)}
         onBack={() => setStep("create")}
         onLogin={() => goConnect("review")}
-        onUpgrade={startTrial}
+        onUpgrade={upgradeFrom("review")}
         onCreate={() => { setCredits(credits - RENDER_COST); setCreditedFrom(null); setStep("genSlides"); }}
       />
     );
@@ -242,7 +309,7 @@ function Screens({
         plan={plan}
         offerConnect={version === "v2" && !loggedIn}
         onConnect={() => goConnect("create")}
-        onStartTrial={startTrial}
+        onStartTrial={upgradeFrom("create")}
         onRestart={() => { setTopic(""); setStep("create"); }}
       />
     );
@@ -254,17 +321,19 @@ function Screens({
       {loggedIn ? (
         <AccountRow
           plan={plan}
+          trial={trial}
           credits={credits}
           deliverFrom={creditedFrom}
+          deliveredNote={creditedNote}
           onDelivered={() => setCreditedFrom(null)}
-          onUpgrade={startTrial}
+          onUpgrade={upgradeFrom("create")}
         />
       ) : starter ? (
         <StarterCredits
           credits={credits}
-          prompt={version === "v3" ? "pro" : "google"}
+          prompt={version === "v4" ? "trial" : version === "v3" ? "pro" : "google"}
           onConnect={() => goConnect("create")}
-          onUpgrade={startTrial}
+          onUpgrade={upgradeFrom("create")}
         />
       ) : (
         <ClaimCredits onClaim={() => goConnect("create")} />
@@ -390,11 +459,11 @@ function ClaimCredits({ onClaim }: { onClaim: () => void }) {
  * V2/V3 top slot before the user has an account: the starter credits on the Free plan.
  * While the balance covers a design the only action is small; once it does not, the row
  * says Running low and the prompt becomes the full-width primary action. V2 prompts to
- * connect Google for more credits, V3 prompts to upgrade to Pro.
+ * connect Google for more credits, V3 prompts to upgrade to Pro, V4 opens the trial paywall.
  */
 function StarterCredits({
   credits, prompt, onConnect, onUpgrade,
-}: { credits: number; prompt: "google" | "pro"; onConnect: () => void; onUpgrade: () => void }) {
+}: { credits: number; prompt: "google" | "pro" | "trial"; onConnect: () => void; onUpgrade: () => void }) {
   const [welcome, setWelcome] = useState(credits === V2_START_CREDITS);
   const low = credits < RENDER_COST;
   return (
@@ -416,7 +485,7 @@ function StarterCredits({
           </Column>
           {!low && (
             <Column width="content">
-              {prompt === "pro" ? (
+              {prompt !== "google" ? (
                 <Button variant="secondary" size="small" icon={PremiumAppsProgramProFilledGoldIcon} onClick={onUpgrade}>
                   Upgrade
                 </Button>
@@ -430,9 +499,9 @@ function StarterCredits({
         {low && prompt === "google" && (
           <Button variant="primary" stretch onClick={onConnect}>{`Connect Google for ${FREE_CREDITS} free credits`}</Button>
         )}
-        {low && prompt === "pro" && (
+        {low && prompt !== "google" && (
           <Button variant="primary" stretch icon={PremiumAppsProgramProFilledGoldIcon} onClick={onUpgrade}>
-            Upgrade for more credits
+            {prompt === "trial" ? "Start free trial" : "Upgrade for more credits"}
           </Button>
         )}
         {welcome && !low && (
@@ -455,8 +524,11 @@ function StarterCredits({
  * positive Alert confirms. The kit has no confetti or glow component.
  */
 function AccountRow({
-  plan, credits, deliverFrom, onDelivered, onUpgrade,
-}: { plan: Plan; credits: number; deliverFrom: number | null; onDelivered: () => void; onUpgrade: () => void }) {
+  plan, trial = false, credits, deliverFrom, deliveredNote, onDelivered, onUpgrade,
+}: {
+  plan: Plan; trial?: boolean; credits: number; deliverFrom: number | null; deliveredNote: string;
+  onDelivered: () => void; onUpgrade: () => void;
+}) {
   const [from] = useState(deliverFrom ?? 0);
   const [shown, setShown] = useState(deliverFrom ?? credits);
   const [phase, setPhase] = useState<"filling" | "done" | "idle">(deliverFrom !== null ? "filling" : "idle");
@@ -468,7 +540,8 @@ function AccountRow({
     return () => clearTimeout(t);
   }, [phase, shown, credits, onDelivered]);
 
-  const low = plan === "free" ? credits < RENDER_COST : credits < PRO_LOW_CREDITS;
+  // A trial starts below PRO_LOW_CREDITS, so it counts as low only once a design no longer fits.
+  const low = plan === "free" || trial ? credits < RENDER_COST : credits < PRO_LOW_CREDITS;
 
   return (
     <Box border="ui" borderRadius="large" padding="1.5u">
@@ -482,7 +555,7 @@ function AccountRow({
               <Text variant="bold">{`${shown} credits`}</Text>
               <Columns spacing="0.5u" alignY="center">
                 <Column width="content">
-                  {plan === "pro" ? <Badge tone="assist" text="Pro" /> : <Badge tone="info" text="Free" />}
+                  {plan === "pro" ? <Badge tone="assist" text={trial ? "Pro trial" : "Pro"} /> : <Badge tone="info" text="Free" />}
                 </Column>
                 {low && (
                   <Column width="content">
@@ -523,12 +596,10 @@ function AccountRow({
         )}
 
         {phase === "filling" && (
-          <ProgressBar size="small" value={Math.round(((shown - from) / (credits - from)) * 100)} ariaLabel="Adding your free credits" />
+          <ProgressBar size="small" value={Math.round(((shown - from) / (credits - from)) * 100)} ariaLabel="Adding your credits" />
         )}
         {phase === "done" && (
-          <Alert tone="positive" onDismiss={() => setPhase("idle")}>
-            {`${FREE_CREDITS} free credits added to your account.`}
-          </Alert>
+          <Alert tone="positive" onDismiss={() => setPhase("idle")}>{deliveredNote}</Alert>
         )}
       </Rows>
     </Box>
@@ -596,19 +667,20 @@ const AI_MODELS = [
 /** Review screen, matching the live app. The CTA depends on the account state:
  *  logged in = Create design; logged out = log in first, which returns here. */
 function Review({
-  version, loggedIn, plan, credits, slideCount, visuals, onVisuals, justCredited, onDismissCredited,
+  version, loggedIn, plan, credits, slideCount, visuals, onVisuals, justCredited, creditedNote, onDismissCredited,
   onBack, onLogin, onUpgrade, onCreate,
 }: {
   version: Version; loggedIn: boolean; plan: Plan; credits: number; slideCount: number;
-  visuals: string; onVisuals: (v: string) => void; justCredited: boolean; onDismissCredited: () => void;
+  visuals: string; onVisuals: (v: string) => void; justCredited: boolean; creditedNote: string;
+  onDismissCredited: () => void;
   onBack: () => void; onLogin: () => void; onUpgrade: () => void; onCreate: () => void;
 }) {
   const enough = credits >= RENDER_COST;
   // v1 needs an account to create; v2 and v3 create on starter credits and prompt only when short
-  // (v2: connect Google, v3: upgrade to Pro).
+  // (v2: connect Google, v3: upgrade to Pro, v4: the in-app paywall's free trial).
   const cta: "create" | "login" | "connect" | "upgrade" | "topup" =
     enough && (loggedIn || version !== "v1") ? "create"
-    : !loggedIn ? (version === "v2" ? "connect" : version === "v3" ? "upgrade" : "login")
+    : !loggedIn ? (version === "v2" ? "connect" : version === "v3" || version === "v4" ? "upgrade" : "login")
     : plan === "pro" ? "topup" : "upgrade";
   const shortBy = `A design uses ${RENDER_COST} credits. You have ${credits}.`;
   const [slides, setSlides] = useState(() =>
@@ -678,9 +750,7 @@ function Review({
 
       <Rows spacing="1u">
         {justCredited && (
-          <Alert tone="positive" onDismiss={onDismissCredited}>
-            {`${FREE_CREDITS} free credits added to your account.`}
-          </Alert>
+          <Alert tone="positive" onDismiss={onDismissCredited}>{creditedNote}</Alert>
         )}
         {cta === "create" && (
           <>
@@ -705,7 +775,8 @@ function Review({
         {cta === "upgrade" && (
           <>
             <Button variant="primary" stretch icon={PremiumAppsProgramProFilledGoldIcon} onClick={onUpgrade}>
-              {version === "v3" ? "Upgrade for more credits" : "Get 500 credits with Pro"}
+              {version === "v4" ? "Start free trial to create"
+                : version === "v3" ? "Upgrade for more credits" : "Get 500 credits with Pro"}
             </Button>
             <Text size="small" tone="secondary" alignment="center">{shortBy}</Text>
           </>
@@ -720,6 +791,89 @@ function Review({
         )}
       </Rows>
     </Rows>
+  );
+}
+
+/**
+ * v4 in-app paywall at the credit limit. It sells the trial before the user leaves Canva, says
+ * where checkout opens (Canva asks before opening an outside site), and says the outline is
+ * kept, so leaving for checkout does not feel like losing the work.
+ */
+function Paywall({
+  credits, outlineSaved, onStartTrial, onCompare, onBack,
+}: { credits: number; outlineSaved: boolean; onStartTrial: () => void; onCompare: () => void; onBack: () => void }) {
+  return (
+    <Rows spacing="3u">
+      <SurfaceHeader title="Out of credits" divider start={{ ariaLabel: "Back", onClick: onBack }} />
+
+      {outlineSaved && (
+        <Alert tone="positive">Your outline is saved. It is here when you get back.</Alert>
+      )}
+
+      <Rows spacing="2u">
+        <Rows spacing="1u">
+          <Title size="small">Try Pro free for 3 days</Title>
+          <Text tone="secondary">{`A design uses ${RENDER_COST} credits. You have ${credits}.`}</Text>
+        </Rows>
+        <Rows spacing="1u">
+          {PRO_REASONS.map((reason) => (
+            <Columns key={reason} spacing="1u" alignY="center">
+              <Column width="content"><CheckIcon /></Column>
+              <Column><Text>{reason}</Text></Column>
+            </Columns>
+          ))}
+        </Rows>
+      </Rows>
+
+      <Rows spacing="1u">
+        <Button variant="primary" stretch icon={PremiumAppsProgramProFilledGoldIcon} onClick={onStartTrial}>
+          Start free trial
+        </Button>
+        <Text size="small" tone="secondary" alignment="center">$0 today, then $10 a month. Cancel anytime.</Text>
+      </Rows>
+
+      <Rows spacing="1u">
+        <Text size="small" tone="secondary" alignment="center">
+          Checkout opens on carouselstudio.design in a new tab.
+        </Text>
+        <Button variant="tertiary" stretch onClick={onCompare}>Compare plans</Button>
+        <Button variant="tertiary" stretch onClick={onBack}>Not now</Button>
+      </Rows>
+    </Rows>
+  );
+}
+
+/**
+ * v4 waiting state while checkout is open in the other tab. The panel stays here so the user has
+ * somewhere to come back to; once the trial lands it returns them to where they hit the limit.
+ */
+function Checkout({
+  outlineSaved, onTrialStarted, onReopen, onCancel,
+}: { outlineSaved: boolean; onTrialStarted: () => void; onReopen: () => void; onCancel: () => void }) {
+  return (
+    <Box height="full" display="flex" flexDirection="column" justifyContent="center">
+      <Rows spacing="3u">
+        <Box display="flex" justifyContent="center">
+          <ImageCard thumbnailUrl={LOGO_URL} alt="Carousel Studio" thumbnailHeight={56} />
+        </Box>
+        <Rows spacing="1u">
+          <Title size="small" alignment="center">Finish checkout in the new tab</Title>
+          <Text tone="secondary" alignment="center">
+            {outlineSaved
+              ? "Then come back here. Your outline is ready to create."
+              : "Then come back here. Your credits show up straight away."}
+          </Text>
+        </Rows>
+        <Box display="flex" justifyContent="center">
+          <LoadingIndicator />
+        </Box>
+        <Rows spacing="1u">
+          <Button variant="primary" stretch onClick={onTrialStarted}>I've started my trial</Button>
+          <Button variant="secondary" stretch onClick={onReopen}>Reopen checkout</Button>
+          <Button variant="tertiary" stretch onClick={onCancel}>Cancel</Button>
+        </Rows>
+      </Rows>
+    </Box>
   );
 }
 
