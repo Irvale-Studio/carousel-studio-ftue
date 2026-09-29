@@ -8,7 +8,7 @@ import { CarouselStudio, type Plan, type Step, type Version } from "./App";
 
 // Preview host only. Canva draws the panel header (app name, feedback, more) above the app iframe;
 // #header stands in for it. #version is the prototype version switch, outside the panel.
-// ?v=1|2|3|4, ?tab=customize|learn, ?step=connect|review|success|paywall|checkout and ?plan=free|pro
+// ?v=1|2|3|4, ?tab=customize|learn, ?step=connect|review|success|checkout and ?plan=free|pro
 // open those states. ?credits=N sets the balance (the account's with ?plan, the starter balance without).
 const q = new URLSearchParams(location.search);
 const plan = q.get("plan") as Plan | null;

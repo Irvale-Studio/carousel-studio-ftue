@@ -18,7 +18,7 @@ A dropdown at the top right of the prototype switches between them. It opens on 
 
 | Version | How credits work |
 | --- | --- |
-| V4 - Credit limit paywall flow | Starts like V3 (15 credits, the live setup since 25 Sep). The credit limit is where trials come from, so reaching it opens a paywall inside the app instead of going straight to the website: Try Pro free for 3 days, the reasons, $0 today, and a note that checkout opens in a new tab. The outline is kept. While checkout is open the panel waits (Finish checkout in the new tab, Reopen checkout); once the trial lands the user is back on Review with the trial credits and Create design. |
+| V4 - Credit limit paywall flow | Every user starts with 0 credits and the app does not say so: no credit row on the home screen and no credit costs in the AI model picker. Outlines are free. On Review the only button is Start free trial, with the design cost underneath; it goes straight to checkout on the website. The panel waits (Finish checkout in the new tab) and, once the trial lands, returns to Review with the trial credits and Create design. |
 | V3 - Credits straight away, prompt for Pro after | Every user starts on the Free plan with 15 credits and can create a design without signing in. When they run low or cannot afford a design, the account row, the Review button and the success screen all point to upgrading to Pro (pricing page). |
 | V2 - Credits straight away, prompt for Google after | Every user starts on the Free plan with 15 credits and can create a design without signing in. When they run low or cannot afford a design, the account row, the Review button and the success screen all point to connecting Google for 50 more. After connecting, the Pro upgrade takes over. |
 | V1 - No credits until login | Credits arrive only when the user connects Google (50). The home screen leads with the claim offer and Review asks the user to log in before creating. |
@@ -32,7 +32,7 @@ Double-click `Carousel Studio FTUE.html`. It opens as the Carousel Studio side p
 Flows to try from the start screen:
 
 - **V1, claim first:** Claim free credits, then Connect. You return to the home screen logged in and the 50 credits count in.
-- **V4, hit the limit:** type a topic, Generate outline, Create design on the 15 starter credits, Create another, Generate outline again. With 3 credits left Review shows Start free trial to create. It opens the in-app paywall; Start free trial opens checkout in a new tab and the panel waits; I've started my trial (stands in for the backend confirming the trial) returns you to Review with the credits added.
+- **V4, straight to checkout:** type a topic (or Inspire me), Generate outline, then Start free trial on Review. Checkout opens in a new tab and the panel waits; I've started my trial (stands in for the backend confirming the trial) returns you to Review with the credits added.
 - **V3, create first:** type a topic, Generate outline, Create design on the 15 starter credits. With 3 credits left, the home screen and Review offer Upgrade for more credits.
 - **V2, create first:** type a topic, Generate outline, Create design on the 15 starter credits. The success screen and the home screen then offer 50 more for connecting Google.
 - **V1, create first:** type a topic (or use Inspire me), Generate outline, then on Review press Log in to create design, Connect, and you return to Review with the credits added. Create design takes you to the success screen with the Pro offer.
@@ -45,7 +45,6 @@ To open a state directly, add one of these to the end of the file's address in t
 | `?plan=free&credits=8` | Free, running low (Get 500 credits with Pro) |
 | `?plan=pro` | Logged in, Pro plan |
 | `?plan=pro&credits=32` | Pro, running low (Purchase extra credits) |
-| `?step=paywall&credits=3` | V4 in-app paywall at the credit limit |
 | `?step=checkout` | V4 waiting for checkout |
 | `?step=connect` | Connect screen |
 | `?step=review` | Review, logged out |
