@@ -27,7 +27,7 @@ import {
 import {
   ArrowLeftIcon, ArrowRightIcon, CheckIcon, CogIcon, LightBulbIcon, PlusIcon, PremiumAppsProgramProFilledGoldIcon, StarFilledIcon, StarIcon,
 } from "@canva/app-ui-kit/icons";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 // The dev app's own logomark asset; the preview serves it from public/.
 const LOGO_URL = "/carousel-studio-logomark.svg";
@@ -142,19 +142,28 @@ export function CarouselStudio({
 }) {
   openUrl = open;
   return (
-    <Box height="full">
-      <Scrollable>
-        <Box height="full" paddingX="2u" paddingY="2u">
-          <Screens
-            key={version}
-            version={version}
-            initialTab={initialTab}
-            initialStep={initialStep}
-            initialAccount={initialAccount}
-            initialCredits={initialCredits}
-          />
-        </Box>
+    <Screens
+      key={version}
+      version={version}
+      initialTab={initialTab}
+      initialStep={initialStep}
+      initialAccount={initialAccount}
+      initialCredits={initialCredits}
+    />
+  );
+}
+
+/**
+ * The panel layout: content scrolls inside the kit Scrollable. With a footer (v4), the footer sits
+ * below the scroll area, so the main CTA stays visible however short the panel is.
+ */
+function Panel({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
+  return (
+    <Box height="full" display="flex" flexDirection="column">
+      <Scrollable indicator={footer ? { background: "surface" } : undefined}>
+        <Box height="full" paddingX="2u" paddingY="2u">{children}</Box>
       </Scrollable>
+      {footer && <Box paddingX="2u" paddingY="2u">{footer}</Box>}
     </Box>
   );
 }
@@ -248,6 +257,33 @@ function Screens({
     setInspireIndex(inspireIndex + 1);
   }
 
+  // v4 pins the main CTA (Generate outline, Start free trial / Create design) to the bottom of the panel.
+  const sticky = version === "v4";
+  const generateOutline = (
+    <Button variant="primary" stretch onClick={() => (topic.trim() === "" ? setTopicError(true) : setStep("genOutline"))}>
+      Generate outline
+    </Button>
+  );
+  const reviewCta = (
+    <ReviewCta
+      version={version}
+      loggedIn={loggedIn}
+      plan={plan}
+      credits={credits}
+      justCredited={creditedFrom !== null}
+      creditedNote={creditedNote}
+      onDismissCredited={() => setCreditedFrom(null)}
+      onLogin={() => goConnect("review")}
+      onUpgrade={upgradeFrom("review")}
+      onCreate={() => { setCredits(credits - RENDER_COST); setCreditedFrom(null); setStep("genSlides"); }}
+    />
+  );
+  const footer = !sticky ? undefined
+    : step === "review" ? reviewCta
+    : step === "create" && tab === "create" ? generateOutline
+    : undefined;
+
+  const body = (() => {
   if (step === "connect") {
     return (
       <ConnectScreen
@@ -275,20 +311,11 @@ function Screens({
   if (step === "review") {
     return (
       <Review
-        version={version}
-        loggedIn={loggedIn}
-        plan={plan}
-        credits={credits}
         slideCount={slides}
         visuals={visuals}
         onVisuals={setVisuals}
-        justCredited={creditedFrom !== null}
-        creditedNote={creditedNote}
-        onDismissCredited={() => setCreditedFrom(null)}
         onBack={() => setStep("create")}
-        onLogin={() => goConnect("review")}
-        onUpgrade={upgradeFrom("review")}
-        onCreate={() => { setCredits(credits - RENDER_COST); setCreditedFrom(null); setStep("genSlides"); }}
+        cta={sticky ? undefined : reviewCta}
       />
     );
   }
@@ -389,13 +416,7 @@ function Screens({
                   )}
                 />
 
-                <Button
-                  variant="primary"
-                  stretch
-                  onClick={() => (topic.trim() === "" ? setTopicError(true) : setStep("genOutline"))}
-                >
-                  Generate outline
-                </Button>
+                {!sticky && generateOutline}
 
                 {recents.length > 0 && (
                   <Rows spacing="1u">
@@ -429,6 +450,9 @@ function Screens({
       </Tabs>
     </Rows>
   );
+  })();
+
+  return <Panel footer={footer}>{body}</Panel>;
 }
 
 /** Logged-out top slot: the free-credit offer, in the kit's blue info Alert (Box has no blue fill). */
@@ -657,26 +681,12 @@ const AI_MODELS = [
 /** v4 hides credit costs until the user reaches the trial. */
 const AI_MODELS_NO_COST = AI_MODELS.map((m) => ({ ...m, label: m.label.replace(/ \(\d+ credits?\)$/, "") }));
 
-/** Review screen, matching the live app. The CTA depends on the account state:
- *  logged in = Create design; logged out = log in first, which returns here. */
+/** Review screen, matching the live app. The CTA (ReviewCta) sits at the end, or in the pinned footer in v4. */
 function Review({
-  version, loggedIn, plan, credits, slideCount, visuals, onVisuals, justCredited, creditedNote, onDismissCredited,
-  onBack, onLogin, onUpgrade, onCreate,
+  slideCount, visuals, onVisuals, onBack, cta,
 }: {
-  version: Version; loggedIn: boolean; plan: Plan; credits: number; slideCount: number;
-  visuals: string; onVisuals: (v: string) => void; justCredited: boolean; creditedNote: string;
-  onDismissCredited: () => void;
-  onBack: () => void; onLogin: () => void; onUpgrade: () => void; onCreate: () => void;
+  slideCount: number; visuals: string; onVisuals: (v: string) => void; onBack: () => void; cta?: ReactNode;
 }) {
-  const enough = credits >= RENDER_COST;
-  // v1 needs an account to create; v2 and v3 create on starter credits and prompt only when short
-  // (v2: connect Google, v3: upgrade to Pro). v4 starts on 0 credits: Start free trial, straight to checkout.
-  const cta: "create" | "login" | "connect" | "upgrade" | "trial" | "topup" =
-    enough && (loggedIn || version !== "v1") ? "create"
-    : version === "v4" && plan === "free" ? "trial"
-    : !loggedIn ? (version === "v2" ? "connect" : version === "v3" ? "upgrade" : "login")
-    : plan === "pro" ? "topup" : "upgrade";
-  const shortBy = `A design uses ${RENDER_COST} credits. You have ${credits}.`;
   const [slides, setSlides] = useState(() =>
     Array.from({ length: slideCount }, (_, i) => OUTLINE[Math.min(i, OUTLINE.length - 1)]),
   );
@@ -742,6 +752,31 @@ function Review({
 
       <FormField label="Colors" control={() => <ThemeSwatches />} />
 
+      {cta}
+    </Rows>
+  );
+}
+
+/**
+ * The Review CTA, by account state: logged in = Create design; logged out = log in first, which
+ * returns here; short of credits = the version's prompt.
+ */
+function ReviewCta({
+  version, loggedIn, plan, credits, justCredited, creditedNote, onDismissCredited, onLogin, onUpgrade, onCreate,
+}: {
+  version: Version; loggedIn: boolean; plan: Plan; credits: number; justCredited: boolean; creditedNote: string;
+  onDismissCredited: () => void; onLogin: () => void; onUpgrade: () => void; onCreate: () => void;
+}) {
+  const enough = credits >= RENDER_COST;
+  // v1 needs an account to create; v2 and v3 create on starter credits and prompt only when short
+  // (v2: connect Google, v3: upgrade to Pro). v4 starts on 0 credits: Start free trial, straight to checkout.
+  const cta: "create" | "login" | "connect" | "upgrade" | "trial" | "topup" =
+    enough && (loggedIn || version !== "v1") ? "create"
+    : version === "v4" && plan === "free" ? "trial"
+    : !loggedIn ? (version === "v2" ? "connect" : version === "v3" ? "upgrade" : "login")
+    : plan === "pro" ? "topup" : "upgrade";
+  const shortBy = `A design uses ${RENDER_COST} credits. You have ${credits}.`;
+  return (
       <Rows spacing="1u">
         {justCredited && (
           <Alert tone="positive" onDismiss={onDismissCredited}>{creditedNote}</Alert>
@@ -793,7 +828,6 @@ function Review({
           </>
         )}
       </Rows>
-    </Rows>
   );
 }
 
