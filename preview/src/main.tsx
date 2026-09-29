@@ -4,7 +4,64 @@ import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { TestAppUiProvider, Box, Columns, Column, Rows, Text, Title, Button, Select } from "@canva/app-ui-kit";
 import { MoreHorizontalIcon } from "@canva/app-ui-kit/icons";
-import { CarouselStudio, type Plan, type Step, type Version } from "./App";
+import { CarouselStudio, type OpenUrl, type Plan, type Step, type Version } from "./App";
+
+/**
+ * Canva's own "You are about to leave Canva" dialog (captured on the Engyne Figma board, screen 42).
+ * Canva draws it, not the app, every time the app calls requestOpenExternalUrl; Cancel resolves
+ * "aborted", Continue opens the URL in a new tab and resolves "completed". The overlay is preview
+ * host chrome, like #header, so it is positioned with plain styles; the dialog uses kit components.
+ */
+type Pending = { url: string; resolve: (s: "completed" | "aborted") => void };
+let showLeaveDialog: (p: Pending) => void = () => {};
+const openViaCanvaDialog: OpenUrl = (url) => new Promise((resolve) => showLeaveDialog({ url, resolve }));
+
+function LeaveCanvaDialog() {
+  const [pending, setPending] = useState<Pending | null>(null);
+  showLeaveDialog = setPending;
+  if (!pending) return null;
+  const close = (status: "completed" | "aborted") => {
+    if (status === "completed") window.open(pending.url, "_blank", "noopener,noreferrer");
+    pending.resolve(status);
+    setPending(null);
+  };
+  return createPortal(
+    <TestAppUiProvider>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="You are about to leave Canva"
+        style={{
+          position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center",
+          justifyContent: "center", background: "rgba(13, 18, 22, 0.45)", padding: 16,
+        }}
+      >
+        <div style={{ width: "100%", maxWidth: 440 }}>
+          <Box background="elevationSurfaceRaised" borderRadius="large" padding="3u">
+            <Rows spacing="2u">
+              <Title size="small">You are about to leave Canva</Title>
+              <Text>
+                <Text tagName="span" variant="bold">Carousel Studio</Text>
+                {" wants to open "}
+                <Text tagName="span" variant="bold">{pending.url}</Text>
+                {" in a new tab."}
+              </Text>
+              <Columns spacing="1u" align="end">
+                <Column width="content">
+                  <Button variant="secondary" onClick={() => close("aborted")}>Cancel</Button>
+                </Column>
+                <Column width="content">
+                  <Button variant="primary" onClick={() => close("completed")}>Continue</Button>
+                </Column>
+              </Columns>
+            </Rows>
+          </Box>
+        </div>
+      </div>
+    </TestAppUiProvider>,
+    document.body,
+  );
+}
 
 // Preview host only. Canva draws the panel header (app name, feedback, more) above the app iframe;
 // #header stands in for it. #version is the prototype version switch, outside the panel.
@@ -64,7 +121,9 @@ function Preview() {
         initialStep={(q.get("step") as Step) ?? "create"}
         initialAccount={account}
         initialCredits={!plan && q.has("credits") ? Number(q.get("credits")) : undefined}
+        openUrl={openViaCanvaDialog}
       />
+      <LeaveCanvaDialog />
     </>
   );
 }

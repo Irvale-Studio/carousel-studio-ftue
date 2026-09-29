@@ -105,6 +105,13 @@ export type Plan = "free" | "pro";
 export type Account = { plan: Plan; credits: number };
 
 const PRICING_URL = "https://carouselstudio.design/en/pricing";
+/**
+ * v4 checkout link. Canva prints the whole URL in its leave-Canva dialog, so it must be short:
+ * today's link carries the user's JWT in the query string, which fills the dialog with a wall of
+ * characters. Instead the backend issues a short one-time code (here 7Kx2Qp); the website swaps it
+ * for a session and redirects to the trial checkout.
+ */
+const TRIAL_URL = "https://carouselstudio.design/trial/7Kx2Qp";
 const BILLING_URL = "https://carouselstudio.design/en/settings?tab=billing";
 // Billing settings is also where users buy extra credit bundles.
 const TOPUP_URL = BILLING_URL;
@@ -116,11 +123,19 @@ const PRO_LOW_CREDITS = 50;
  * requestOpenExternalUrl (new tab on desktop, browser sheet on mobile); plain links and
  * window.open are blocked in the app iframe. Outside Canva (local preview) it uses window.open.
  */
-type OpenUrl = (url: string) => void;
-const openInNewTab: OpenUrl = (url) => { window.open(url, "_blank", "noopener,noreferrer"); };
+/**
+ * Canva shows its "You are about to leave Canva" dialog with the full URL before opening it,
+ * and resolves "aborted" if the user presses Cancel. openUrl mirrors that result.
+ */
+export type OpenUrl = (url: string) => Promise<"completed" | "aborted">;
+const openInNewTab: OpenUrl = async (url) => {
+  window.open(url, "_blank", "noopener,noreferrer");
+  return "completed";
+};
 // @canva/platform reads Canva's runtime at import time, so load it only when running inside Canva.
-const openInCanva: OpenUrl = (url) => {
-  void import("@canva/platform").then(({ requestOpenExternalUrl }) => requestOpenExternalUrl({ url }));
+const openInCanva: OpenUrl = async (url) => {
+  const { requestOpenExternalUrl } = await import("@canva/platform");
+  return (await requestOpenExternalUrl({ url })).status;
 };
 let openUrl: OpenUrl = openInNewTab;
 const openExternal = (url: string) => openUrl(url);
@@ -238,8 +253,7 @@ function Screens({
   // v4 checkout: the website opens in a new tab and the panel waits. In the app the trial arrives
   // from the backend (poll or webhook); the preview's "I've started my trial" stands in for it.
   function openCheckout() {
-    openExternal(PRICING_URL);
-    setStep("checkout");
+    void openExternal(TRIAL_URL).then((status) => { if (status === "completed") setStep("checkout"); });
   }
   function trialStarted() {
     setLoggedIn(true);
@@ -297,7 +311,7 @@ function Screens({
       <Checkout
         outlineSaved={connectReturn === "review"}
         onTrialStarted={trialStarted}
-        onReopen={() => openExternal(PRICING_URL)}
+        onReopen={() => void openExternal(TRIAL_URL)}
         onCancel={() => setStep(connectReturn)}
       />
     );
