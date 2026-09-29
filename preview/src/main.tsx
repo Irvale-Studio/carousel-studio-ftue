@@ -25,8 +25,9 @@ function LeaveCanvaDialog() {
     pending.resolve(status);
     setPending(null);
   };
+  // No TestAppUiProvider here: the portal inherits the app's provider, and a second provider
+  // strips the kit theme classes off <html> when it unmounts (every button lost its colour).
   return createPortal(
-    <TestAppUiProvider>
       <div
         role="dialog"
         aria-modal="true"
@@ -57,8 +58,7 @@ function LeaveCanvaDialog() {
             </Rows>
           </Box>
         </div>
-      </div>
-    </TestAppUiProvider>,
+      </div>,
     document.body,
   );
 }
