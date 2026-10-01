@@ -332,11 +332,11 @@ function Screens({
     setInspireIndex(inspireIndex + 1);
   }
 
-  // v4 pins the main CTA (Generate outline, Start free trial / Create design) to the bottom of the panel.
+  // v4 pins the main CTA (Generate draft, Start free trial / Create design) to the bottom of the panel.
   const sticky = paywallFlow(version);
   const generateOutline = (
     <Button variant="primary" stretch onClick={() => (topic.trim() === "" ? setTopicError(true) : setStep("genOutline"))}>
-      Generate outline
+      Generate draft
     </Button>
   );
   const reviewCta = (

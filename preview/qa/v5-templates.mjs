@@ -74,7 +74,7 @@ await sleep(2500);
 { const t = await text(); expect(t, "Templates"); expect(t, "See all"); if (/credit/i.test(t)) throw new Error("V5 Create mentions credits"); }
 if (await canvasImg()) throw new Error("canvas not blank at start");
 console.log("ok: canvas blank at start");
-await pinned("Generate outline");
+await pinned("Generate draft");
 await shot("create-start");
 
 await clickCard("Branding is more than just looks");

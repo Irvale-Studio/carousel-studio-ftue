@@ -64,7 +64,7 @@ function expect(t, s) { if (!t.includes(s)) throw new Error(`expected "${s}" in:
 await send("Page.navigate", { url: BASE });
 await sleep(2500);
 { const t = await text(); if (/credit/i.test(t)) throw new Error("V4 Create mentions credits: " + t); console.log("ok: no credit mention on Create"); }
-await pinned("Generate outline");
+await pinned("Generate draft");
 await shot("create-start");
 // model picker must not show costs
 await evalJs(`[...document.querySelectorAll('#root button')].find(b=>b.textContent.trim()==='Auto')?.scrollIntoView()`);
@@ -74,7 +74,7 @@ await click("Auto"); await sleep(400);
 await shot("model-picker");
 await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
 await sleep(300);
-await click("Inspire me"); await click("Generate outline"); await sleep(2200);
+await click("Inspire me"); await click("Generate draft"); await sleep(2200);
 { const t = await text(); expect(t, "Start free trial"); expect(t, "Uses 12 Carousel Studio credits."); if (t.includes("Create design")) throw new Error("Create design shown with 0 credits"); }
 await pinned("Start free trial");
 await evalJs(`(()=>{const e=[...document.querySelectorAll("#root *")].find(e=>e.scrollHeight>e.clientHeight+20 && getComputedStyle(e).overflowY!=="visible"); e.scrollTop=e.scrollHeight; return 1})()`);

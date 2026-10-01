@@ -40,13 +40,13 @@ Same credits and checkout as V4. On Create, above the topic box:
 
 The credit limit is where trials come from, so V4 sends users there with as little friction as possible.
 
-1. **Create:** no credit row and no credit costs in the AI model picker. Generate outline is free.
+1. **Create:** no credit row and no credit costs in the AI model picker. Generate draft is free.
 2. **Review:** the only button is Start free trial, with "Uses 12 Carousel Studio credits." underneath.
 3. **Canva's leave dialog:** "You are about to leave Canva. Carousel Studio wants to open https://carouselstudio.design/trial/7Kx2Qp in a new tab." Cancel keeps the user on Review. Continue opens checkout in a new tab.
 4. **Waiting screen:** "Finish checkout in the new tab", with Reopen checkout and Cancel.
 5. **Back on Review** with the outline kept: "Your Pro trial has started. 50 credits added." and Create design.
 
-The main button (Generate outline on Create; Start free trial or Create design on Review) is pinned to the bottom of the panel and everything above it scrolls, so it is always visible however short the panel is.
+The main button (Generate draft on Create; Start free trial or Create design on Review) is pinned to the bottom of the panel and everything above it scrolls, so it is always visible however short the panel is.
 
 The leave dialog is drawn by Canva, not the app, every time the app opens a link; the prototype draws a copy so the flow can be seen outside Canva. Today the app's pricing link carries the login token (`/pricing?user_token=eyJ...`), so the dialog fills with a wall of characters. V4 uses a short link instead (`TRIAL_URL`).
 
@@ -57,10 +57,10 @@ Double-click `Carousel Studio FTUE.html`. It opens as the Carousel Studio side p
 Flows to try from the start screen:
 
 - **V1, claim first:** Claim free credits, then Connect. You return to the home screen logged in and the 50 credits count in.
-- **V4, straight to checkout:** type a topic (or Inspire me), Generate outline, then Start free trial on Review. Canva's leave dialog shows the short checkout link (Cancel keeps you on Review); Continue opens checkout in a new tab and the panel waits; I've started my trial (stands in for the backend confirming the trial) returns you to Review with the credits added.
-- **V3, create first:** type a topic, Generate outline, Create design on the 15 starter credits. With 3 credits left, the home screen and Review offer Upgrade for more credits.
-- **V2, create first:** type a topic, Generate outline, Create design on the 15 starter credits. The success screen and the home screen then offer 50 more for connecting Google.
-- **V1, create first:** type a topic (or use Inspire me), Generate outline, then on Review press Log in to create design, Connect, and you return to Review with the credits added. Create design takes you to the success screen with the Pro offer.
+- **V4, straight to checkout:** type a topic (or Inspire me), Generate draft, then Start free trial on Review. Canva's leave dialog shows the short checkout link (Cancel keeps you on Review); Continue opens checkout in a new tab and the panel waits; I've started my trial (stands in for the backend confirming the trial) returns you to Review with the credits added.
+- **V3, create first:** type a topic, Generate draft, Create design on the 15 starter credits. With 3 credits left, the home screen and Review offer Upgrade for more credits.
+- **V2, create first:** type a topic, Generate draft, Create design on the 15 starter credits. The success screen and the home screen then offer 50 more for connecting Google.
+- **V1, create first:** type a topic (or use Inspire me), Generate draft, then on Review press Log in to create design, Connect, and you return to Review with the credits added. Create design takes you to the success screen with the Pro offer.
 
 To open a state directly, add one of these to the end of the file's address in the browser bar (add `&v=1`, `&v=2` or `&v=3` for an older version):
 

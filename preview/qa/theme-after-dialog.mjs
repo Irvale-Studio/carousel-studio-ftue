@@ -27,7 +27,7 @@ const click = async (label, scope = "#root") => {
   for (const type of ["mousePressed", "mouseReleased"]) await send("Input.dispatchMouseEvent", { type, x: b.x, y: b.y, button: "left", clickCount: 1 });
   await sleep(400);
 };
-const state = () => ev(`(()=>{const b=[...document.querySelectorAll('#root button')].find(b=>b.textContent.trim()==='Start free trial'||b.textContent.trim()==='Generate outline'); return JSON.stringify({bg: b && getComputedStyle(b).backgroundColor, htmlClass: document.documentElement.className, bodyClass: document.body.className, styleTags: document.querySelectorAll('style,link[rel=stylesheet]').length});})()`);
+const state = () => ev(`(()=>{const b=[...document.querySelectorAll('#root button')].find(b=>b.textContent.trim()==='Start free trial'||b.textContent.trim()==='Generate draft'); return JSON.stringify({bg: b && getComputedStyle(b).backgroundColor, htmlClass: document.documentElement.className, bodyClass: document.body.className, styleTags: document.querySelectorAll('style,link[rel=stylesheet]').length});})()`);
 await send("Page.navigate", { url: BASE + "?v=4&step=review" }); await sleep(2500);
 console.log("before :", await state()); await shot("before");
 await click("Start free trial"); console.log("dialog :", await state());
