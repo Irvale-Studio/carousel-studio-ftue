@@ -1,20 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" width="1080" height="1350">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#E8D2A8"/>
-      <stop offset="0.6" stop-color="#B4824A"/>
-      <stop offset="1" stop-color="#4A2E18"/>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.45"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.6"/>
     </linearGradient>
     <filter id="blur"><feGaussianBlur stdDeviation="50"/></filter>
   </defs>
-  <rect width="1080" height="1350" fill="url(#g)"/>
-  <g filter="url(#blur)" opacity="0.8">
-    <circle cx="600" cy="420" r="230" fill="#3B2416"/>
-    <ellipse cx="600" cy="820" rx="330" ry="240" fill="#E3B23C"/>
+  <rect width="1080" height="1350" fill="#B4824A"/>
+  <rect width="1080" height="1350" fill="url(#shade)"/>
+  <g filter="url(#blur)">
+    <circle cx="600" cy="420" r="230" fill="#000000" opacity="0.55"/>
+    <ellipse cx="600" cy="820" rx="330" ry="240" fill="#F7D66B" opacity="0.7"/>
   </g>
-  <text x="540" y="1050" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="110" fill="#F7D66B">Time blocking</text>
-  <g font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="72" fill="#FFFFFF" text-anchor="middle">
+  <text x="540" y="1050" text-anchor="middle" font-family="'Playfair Display', Georgia, serif" font-weight="400" font-style="italic" font-size="110" fill="#F7D66B">Time blocking</text>
+  <g font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="72" fill="#FFFFFF" text-anchor="middle">
     <text x="540" y="1140">tips for business</text>
     <text x="540" y="1220">owners</text>
-  </g>
-</svg>
+  </g></svg>

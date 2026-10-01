@@ -22,7 +22,7 @@ import {
   AppUiProvider, Rows, Columns, Column, Box, Text, Title, Button, Alert, Badge,
   Tabs, TabList, Tab, TabPanels, TabPanel, FormField, MultilineInput, NumberInput,
   TextInput, Select, RadioGroup, Checkbox, FileInput, Swatch, Link, LinkButton,
-  ProgressBar, Avatar, SurfaceHeader, Scrollable, ImageCard, LoadingIndicator, Carousel, Grid,
+  ProgressBar, Avatar, SurfaceHeader, Scrollable, ImageCard, LoadingIndicator, Carousel, Grid, ColorSelector,
 } from "@canva/app-ui-kit";
 import {
   ArrowLeftIcon, ArrowRightIcon, CheckIcon, CogIcon, LightBulbIcon, PlusIcon, PremiumAppsProgramProFilledGoldIcon, SearchIcon, StarFilledIcon, StarIcon,
@@ -63,16 +63,16 @@ export type Step =
  * v5 templates. The artwork here is preview stand-in art; in the app the list and thumbnails come
  * from the backend. Paths are string literals so the one-file build can inline them.
  */
-export type Template = { id: string; title: string; thumbnailUrl: string };
+export type Template = { id: string; title: string; thumbnailUrl: string; theme: ThemeStyle };
 const TEMPLATES: Template[] = [
-  { id: "branding", title: "Branding is more than just looks", thumbnailUrl: "/templates/branding.svg" },
-  { id: "focus", title: "How to stay focused in a distracted world", thumbnailUrl: "/templates/focus.svg" },
-  { id: "niche", title: "How to find your niche", thumbnailUrl: "/templates/niche.svg" },
-  { id: "mindset", title: "Mindset shifts that will accelerate your career", thumbnailUrl: "/templates/mindset.svg" },
-  { id: "healthy", title: "Healthy lifestyle tips", thumbnailUrl: "/templates/healthy.svg" },
-  { id: "habits", title: "5 habits that changed my life", thumbnailUrl: "/templates/habits.svg" },
-  { id: "timeblock", title: "Time blocking tips for business owners", thumbnailUrl: "/templates/timeblock.svg" },
-  { id: "simple", title: "Simple ways I show up for myself", thumbnailUrl: "/templates/simple.svg" },
+  { id: "branding", title: "Branding is more than just looks", thumbnailUrl: "/templates/branding.svg", theme: { background: "#ECE4D6", text: "#111111", accent: "#E1663C", headingFont: "archivo-black", bodyFont: "inter" } },
+  { id: "focus", title: "How to stay focused in a distracted world", thumbnailUrl: "/templates/focus.svg", theme: { background: "#F2EEE4", text: "#141414", accent: "#D7E66A", headingFont: "montserrat", bodyFont: "inter" } },
+  { id: "niche", title: "How to find your niche", thumbnailUrl: "/templates/niche.svg", theme: { background: "#FFFFFF", text: "#1F2A5A", accent: "#2B3FA0", headingFont: "anton", bodyFont: "inter" } },
+  { id: "mindset", title: "Mindset shifts that will accelerate your career", thumbnailUrl: "/templates/mindset.svg", theme: { background: "#4E5BC4", text: "#FFFFFF", accent: "#EDA88A", headingFont: "playfair", bodyFont: "inter" } },
+  { id: "healthy", title: "Healthy lifestyle tips", thumbnailUrl: "/templates/healthy.svg", theme: { background: "#46512F", text: "#FFFFFF", accent: "#E4F25A", headingFont: "archivo-black", bodyFont: "lora" } },
+  { id: "habits", title: "5 habits that changed my life", thumbnailUrl: "/templates/habits.svg", theme: { background: "#F7E3E6", text: "#3A2A30", accent: "#3D5AFE", headingFont: "montserrat", bodyFont: "lora" } },
+  { id: "timeblock", title: "Time blocking tips for business owners", thumbnailUrl: "/templates/timeblock.svg", theme: { background: "#B4824A", text: "#FFFFFF", accent: "#F7D66B", headingFont: "playfair", bodyFont: "montserrat" } },
+  { id: "simple", title: "Simple ways I show up for myself", thumbnailUrl: "/templates/simple.svg", theme: { background: "#3F6E57", text: "#FFFFFF", accent: "#9ED8CC", headingFont: "dm-serif", bodyFont: "inter" } },
 ];
 /** How many templates the quick-pick row shows before See all. */
 const QUICK_TEMPLATES = 6;
@@ -110,12 +110,29 @@ const DAYS = [
 ];
 
 const FONTS = [
-  { value: "libre-baskerville", label: "Libre Baskerville" },
-  { value: "lora", label: "Lora" },
+  { value: "archivo-black", label: "Archivo Black" },
+  { value: "anton", label: "Anton" },
+  { value: "montserrat", label: "Montserrat" },
   { value: "inter", label: "Inter" },
   { value: "playfair", label: "Playfair Display" },
-  { value: "montserrat", label: "Montserrat" },
+  { value: "dm-serif", label: "DM Serif Display" },
+  { value: "libre-baskerville", label: "Libre Baskerville" },
+  { value: "lora", label: "Lora" },
 ];
+
+/** A carousel theme: three colours and a font pairing (font ids from FONTS). */
+export type ThemeStyle = { background: string; text: string; accent: string; headingFont: string; bodyFont: string };
+export type Theme = ThemeStyle & { id: string; name: string };
+
+const THEMES: Theme[] = [
+  { id: "cream", name: "Classic cream", background: "#EFE7DA", text: "#161616", accent: "#E1663C", headingFont: "archivo-black", bodyFont: "inter" },
+  { id: "midnight", name: "Midnight", background: "#141B34", text: "#FFFFFF", accent: "#F5C451", headingFont: "anton", bodyFont: "inter" },
+  { id: "glow", name: "Creator glow", background: "#A020F0", text: "#FFFFFF", accent: "#ECEC7F", headingFont: "montserrat", bodyFont: "inter" },
+  { id: "blush", name: "Blush", background: "#F7E3E6", text: "#3A2A30", accent: "#3D5AFE", headingFont: "playfair", bodyFont: "lora" },
+  { id: "forest", name: "Forest", background: "#213D30", text: "#F3EEDF", accent: "#B7E36A", headingFont: "dm-serif", bodyFont: "inter" },
+];
+/** A picked template starts on its own look, offered as the first theme. */
+const templateTheme = (t: Template): Theme => ({ id: "template", name: "Template", ...t.theme });
 
 // Pro plan, from carouselstudio.design/pricing: $10 a month, 500 credits a month, 3-day free trial.
 const TRIAL_CREDITS = 50;
@@ -166,11 +183,13 @@ const openExternal = (url: string) => openUrl(url);
 
 // TODO (wire to the real app): add the template's pages to the design via the Canva Apps SDK.
 const openTemplateInDesign = (_t: Template) => {};
+// TODO (wire to the real app): restyle the design's pages with the theme, and send it with generation.
+const applyThemeToDesign = (_t: Theme) => {};
 
 export function App() {
   return (
     <AppUiProvider>
-      <CarouselStudio openUrl={openInCanva} onOpenTemplate={openTemplateInDesign} />
+      <CarouselStudio openUrl={openInCanva} onOpenTemplate={openTemplateInDesign} onThemeChange={applyThemeToDesign} />
     </AppUiProvider>
   );
 }
@@ -178,10 +197,10 @@ export function App() {
 /** Canva gives the app the full panel height; content scrolls inside it. */
 export function CarouselStudio({
   version = "v5", initialTab = "create", initialStep = "create", initialAccount, initialCredits, openUrl: open = openInNewTab,
-  onOpenTemplate = () => {},
+  onOpenTemplate = () => {}, onThemeChange = () => {},
 }: {
   version?: Version; initialTab?: string; initialStep?: Step; initialAccount?: Account; initialCredits?: number;
-  openUrl?: OpenUrl; onOpenTemplate?: (t: Template) => void;
+  openUrl?: OpenUrl; onOpenTemplate?: (t: Template) => void; onThemeChange?: (t: Theme) => void;
 }) {
   openUrl = open;
   return (
@@ -193,6 +212,7 @@ export function CarouselStudio({
       initialAccount={initialAccount}
       initialCredits={initialCredits}
       onOpenTemplate={onOpenTemplate}
+      onThemeChange={onThemeChange}
     />
   );
 }
@@ -213,10 +233,10 @@ function Panel({ children, footer }: { children: ReactNode; footer?: ReactNode }
 }
 
 function Screens({
-  version, initialTab, initialStep, initialAccount, initialCredits, onOpenTemplate,
+  version, initialTab, initialStep, initialAccount, initialCredits, onOpenTemplate, onThemeChange,
 }: {
   version: Version; initialTab: string; initialStep: Step; initialAccount?: Account; initialCredits?: number;
-  onOpenTemplate: (t: Template) => void;
+  onOpenTemplate: (t: Template) => void; onThemeChange: (t: Theme) => void;
 }) {
   const starter = version === "v2" || version === "v3"; // v2 and v3 start every user with credits
   const [loggedIn, setLoggedIn] = useState(initialAccount !== undefined);
@@ -243,7 +263,14 @@ function Screens({
   const [visuals, setVisuals] = useState("stock");
   const [recents, setRecents] = useState<Recent[]>(initialAccount ? SEED_RECENTS : []);
   const [templateId, setTemplateId] = useState<string | null>(null);
-  const pickTemplate = (t: Template) => { setTemplateId(t.id); onOpenTemplate(t); };
+  const template = TEMPLATES.find((t) => t.id === templateId);
+  const [theme, setTheme] = useState<Theme>(THEMES[0]);
+  useEffect(() => onThemeChange(theme), [theme, onThemeChange]);
+  const pickTemplate = (t: Template) => { setTemplateId(t.id); setTheme(templateTheme(t)); onOpenTemplate(t); };
+  // One theme, edited from Create, Customize or Review.
+  const themePicker = (
+    <ThemePicker theme={theme} fromTemplate={template && templateTheme(template)} onChange={setTheme} />
+  );
 
   // outline and slide generation auto-advance, matching the live app
   useEffect(() => {
@@ -363,6 +390,7 @@ function Screens({
         visuals={visuals}
         onVisuals={setVisuals}
         onBack={() => setStep("create")}
+        theme={themePicker}
         cta={sticky ? undefined : reviewCta}
       />
     );
@@ -406,11 +434,12 @@ function Screens({
         <ClaimCredits onClaim={() => goConnect("create")} />
       )}
 
-      <Tabs activeId={tab} onSelect={(id) => setTab(id)}>
+      {/* Controlled kit Tabs never call onSelect on a click (its own setter is a no-op), so each Tab sets the tab. */}
+      <Tabs activeId={tab}>
         <TabList>
-          <Tab id="create">Create</Tab>
-          <Tab id="customize">Customize</Tab>
-          <Tab id="learn">Learn</Tab>
+          <Tab id="create" onClick={setTab}>Create</Tab>
+          <Tab id="customize" onClick={setTab}>Customize</Tab>
+          <Tab id="learn" onClick={setTab}>Learn</Tab>
         </TabList>
         <TabPanels>
           <TabPanel id="create">
@@ -439,14 +468,7 @@ function Screens({
                   )}
                 />
 
-                <FormField
-                  label="Theme"
-                  control={() => (
-                    <Box background="neutralSubtle" border="ui" borderRadius="large" padding="1u">
-                      <Box width="full" borderRadius="standard" padding="4u" background="elevationSurfaceRaised" />
-                    </Box>
-                  )}
-                />
+                {themePicker}
 
                 <FormField
                   label="Number of slides"
@@ -492,7 +514,7 @@ function Screens({
 
           <TabPanel id="customize">
             <Box paddingTop="2u">
-              <Customize visuals={visuals} onVisuals={setVisuals} />
+              <Customize visuals={visuals} onVisuals={setVisuals} theme={themePicker} />
             </Box>
           </TabPanel>
 
@@ -738,16 +760,14 @@ const AI_MODELS_NO_COST = AI_MODELS.map((m) => ({ ...m, label: m.label.replace(/
 
 /** Review screen, matching the live app. The CTA (ReviewCta) sits at the end, or in the pinned footer in v4. */
 function Review({
-  slideCount, visuals, onVisuals, onBack, cta,
+  slideCount, visuals, onVisuals, onBack, theme, cta,
 }: {
-  slideCount: number; visuals: string; onVisuals: (v: string) => void; onBack: () => void; cta?: ReactNode;
+  slideCount: number; visuals: string; onVisuals: (v: string) => void; onBack: () => void; theme: ReactNode; cta?: ReactNode;
 }) {
   const [slides, setSlides] = useState(() =>
     Array.from({ length: slideCount }, (_, i) => OUTLINE[Math.min(i, OUTLINE.length - 1)]),
   );
   const [index, setIndex] = useState(0);
-  const [headingFont, setHeadingFont] = useState("libre-baskerville");
-  const [bodyFont, setBodyFont] = useState("lora");
   const slide = slides[index];
   const edit = (field: keyof (typeof OUTLINE)[number]) => (value: string) =>
     setSlides(slides.map((s, i) => (i === index ? { ...s, [field]: value } : s)));
@@ -796,16 +816,7 @@ function Review({
 
       <FormField label="Visuals" control={() => <VisualsRadios value={visuals} onChange={onVisuals} />} />
 
-      <FormField
-        label="Heading font"
-        control={(props) => <Select {...props} stretch value={headingFont} onChange={setHeadingFont} options={FONTS} />}
-      />
-      <FormField
-        label="Body font"
-        control={(props) => <Select {...props} stretch value={bodyFont} onChange={setBodyFont} options={FONTS} />}
-      />
-
-      <FormField label="Colors" control={() => <ThemeSwatches />} />
+      {theme}
 
       {cta}
     </Rows>
@@ -1058,21 +1069,80 @@ function VisualsRadios({ value, onChange }: { value: string; onChange: (v: strin
   );
 }
 
-function ThemeSwatches() {
+const THEME_COLORS: { key: "background" | "text" | "accent"; label: string }[] = [
+  { key: "background", label: "Background" },
+  { key: "text", label: "Text" },
+  { key: "accent", label: "Accent" },
+];
+
+/**
+ * The carousel theme: preset themes as one Swatch each (background, text, accent; the picked
+ * template's own look comes first), then each colour and both fonts are editable. Any edit makes
+ * the theme Custom. Shared by Create, Customize and Review.
+ */
+function ThemePicker({
+  theme, fromTemplate, onChange,
+}: { theme: Theme; fromTemplate?: Theme; onChange: (t: Theme) => void }) {
+  const edit = (patch: Partial<ThemeStyle>) => onChange({ ...theme, ...patch, id: "custom", name: "Custom" });
+  const presets = fromTemplate ? [fromTemplate, ...THEMES] : THEMES;
   return (
-    <Columns spacing="1u">
-      <Column width="content"><Swatch fill={["#FFFFFF"]} variant="outline" /></Column>
-      <Column width="content"><Swatch fill={["#8B3DFF"]} /></Column>
-      <Column width="content"><Swatch fill={["#D9C2FF"]} /></Column>
-    </Columns>
+    <Rows spacing="2u">
+      <Rows spacing="1u">
+        <Columns spacing="1u" alignY="center">
+          <Column><Text variant="bold">Theme</Text></Column>
+          <Column width="content"><Text size="small" tone="secondary">{theme.name}</Text></Column>
+        </Columns>
+        <Columns spacing="1u">
+          {presets.map((p) => (
+            <Column key={p.id} width="content">
+              <Swatch
+                fill={[p.background, p.text, p.accent]}
+                tooltipLabel={p.name}
+                active={p.id === theme.id}
+                onClick={() => onChange(p)}
+              />
+            </Column>
+          ))}
+        </Columns>
+      </Rows>
+
+      <FormField
+        label="Colors"
+        control={() => (
+          <Columns spacing="2u">
+            {THEME_COLORS.map(({ key, label }) => (
+              <Column key={key} width="content">
+                <Rows spacing="0.5u" align="center">
+                  <ColorSelector color={theme[key]} onChange={(c) => edit({ [key]: c })} />
+                  <Text size="xsmall" tone="secondary">{label}</Text>
+                </Rows>
+              </Column>
+            ))}
+          </Columns>
+        )}
+      />
+
+      <FormField
+        label="Heading font"
+        control={(props) => (
+          <Select {...props} stretch value={theme.headingFont} onChange={(v) => edit({ headingFont: v })} options={FONTS} />
+        )}
+      />
+      <FormField
+        label="Body font"
+        control={(props) => (
+          <Select {...props} stretch value={theme.bodyFont} onChange={(v) => edit({ bodyFont: v })} options={FONTS} />
+        )}
+      />
+    </Rows>
   );
 }
 
 /** Customize tab, matching the dev app: theme, fonts, visuals, branding, instructions, settings. */
-function Customize({ visuals, onVisuals }: { visuals: string; onVisuals: (v: string) => void }) {
+function Customize({
+  visuals, onVisuals, theme,
+}: { visuals: string; onVisuals: (v: string) => void; theme: ReactNode }) {
   const [showTip, setShowTip] = useState(true);
-  const [headingFont, setHeadingFont] = useState("libre-baskerville");
-  const [bodyFont, setBodyFont] = useState("lora");
   const [alternate, setAlternate] = useState(false);
   const [name, setName] = useState("");
   const [handle, setHandle] = useState("");
@@ -1088,26 +1158,7 @@ function Customize({ visuals, onVisuals }: { visuals: string; onVisuals: (v: str
         </Alert>
       )}
 
-      <Rows spacing="1u">
-        <Columns spacing="1u" alignY="center">
-          <Column><Text variant="bold">Themes</Text></Column>
-          <Column width="content"><LinkButton onClick={() => {}}>See all</LinkButton></Column>
-        </Columns>
-        <Box background="neutralSubtle" border="ui" borderRadius="large" padding="1u">
-          <Box width="full" borderRadius="standard" padding="4u" background="elevationSurfaceRaised" />
-        </Box>
-      </Rows>
-
-      <FormField label="Colors" control={() => <ThemeSwatches />} />
-
-      <FormField
-        label="Heading font"
-        control={(props) => <Select {...props} stretch value={headingFont} onChange={setHeadingFont} options={FONTS} />}
-      />
-      <FormField
-        label="Body font"
-        control={(props) => <Select {...props} stretch value={bodyFont} onChange={setBodyFont} options={FONTS} />}
-      />
+      {theme}
 
       <Checkbox
         label="Alternate colors every other slide"

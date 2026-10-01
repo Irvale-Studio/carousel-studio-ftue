@@ -1,26 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" width="1080" height="1350">
-  <defs>
-    <filter id="paper" x="0" y="0" width="100%" height="100%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" seed="7"/>
-      <feColorMatrix values="0 0 0 0 0.42  0 0 0 0 0.36  0 0 0 0 0.28  0 0 0 0.22 0"/>
-    </filter>
-  </defs>
+  <defs><filter id="paper" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" seed="7"/>
+    <feColorMatrix values="0 0 0 0 0.42  0 0 0 0 0.36  0 0 0 0 0.28  0 0 0 0.2 0"/>
+  </filter></defs>
   <rect width="1080" height="1350" fill="#ECE4D6"/>
   <rect width="1080" height="1350" filter="url(#paper)"/>
-  <g font-family="Arial, Helvetica, sans-serif" font-size="40" fill="#1A1A1A">
+  <g font-family="Inter, Arial, sans-serif" font-weight="400" font-size="40" fill="#111111">
     <text x="110" y="150" letter-spacing="1">HARPER RUSSO</text>
-    <text x="970" y="150" text-anchor="end" font-weight="700">#branding</text>
   </g>
-  <g font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="146" fill="#111">
+  <text x="970" y="150" text-anchor="end" font-family="Inter, Arial, sans-serif" font-weight="700" font-size="40" fill="#111111">#branding</text>
+  <g font-family="'Archivo Black', 'Arial Black', sans-serif" font-weight="400" font-size="146" fill="#111111">
     <text x="104" y="560" textLength="862" lengthAdjust="spacingAndGlyphs">BRANDING</text>
-    <text x="104" y="700">IS MORE</text>
+    <text x="104" y="700" textLength="660" lengthAdjust="spacingAndGlyphs">IS MORE</text>
     <text x="104" y="840" textLength="862" lengthAdjust="spacingAndGlyphs">THAN JUST</text>
-    <text x="104" y="980">LOOKS</text>
+    <text x="104" y="980" textLength="560" lengthAdjust="spacingAndGlyphs">LOOKS</text>
   </g>
   <path d="M108 1028 C 300 1004, 560 994, 738 998 C 752 999 752 1013 738 1014 C 560 1014, 320 1022, 112 1040 Z" fill="#E1663C"/>
   <path d="M1080 820 C 1012 864, 964 916, 940 978 C 920 1032, 962 1084, 994 1056 C 1020 1032, 996 976, 950 970 C 908 966, 872 982, 842 1000" fill="none" stroke="#E1663C" stroke-width="11" stroke-linecap="round" stroke-dasharray="26 20"/>
-  <g font-family="Arial, Helvetica, sans-serif" font-size="46" fill="#1A1A1A">
-    <text x="110" y="1250">@reallygreatsite</text>
-    <text x="970" y="1250" text-anchor="end" font-weight="700">2025</text>
-  </g>
-</svg>
+  <text x="110" y="1250" font-family="Inter, Arial, sans-serif" font-weight="400" font-size="46" fill="#111111">@reallygreatsite</text>
+  <text x="970" y="1250" text-anchor="end" font-family="Inter, Arial, sans-serif" font-weight="700" font-size="46" fill="#111111">2025</text></svg>

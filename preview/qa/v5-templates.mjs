@@ -1,6 +1,7 @@
 // V5 template quick pick walk: headless Chrome, real mouse clicks, 1440x900, a screenshot per step.
 // Asserts: Templates row + See all on Create, blank canvas page until a pick, loader then the picked
-// template on the canvas, See all grid + search, picking from the grid swaps the canvas, v4 has no row.
+// template on the canvas, theme presets/colours/fonts restyle it live, See all grid + search, picking
+// from the grid swaps the canvas, v4 has no row.
 // Usage: node qa/v5-templates.mjs <out-dir> [base-url]   (default base = local dev server)
 // Chrome path: CHROME env var, else the default Windows install.
 import { spawn } from "node:child_process";
@@ -60,7 +61,7 @@ async function pinned(label) {
   console.log("ok: pinned in view:", label, JSON.stringify(r));
 }
 function expect(t, s) { if (!t.includes(s)) throw new Error(`expected "${s}" in:\n${t}`); console.log("ok:", s); }
-const canvasImg = () => evalJs(`(() => { const i = document.querySelector('#canvas .page img'); return i ? { src: i.getAttribute('src'), shown: i.classList.contains('shown') } : null; })()`);
+const canvasImg = () => evalJs(`(() => { const i = document.querySelector('#canvas .page .art'); return i ? { src: i.dataset.template, shown: i.classList.contains('shown') } : null; })()`);
 async function clickCard(title) {
   const box = await evalJs(`(() => { const e=document.querySelector('#root [aria-label=${JSON.stringify("Open template: " + title)}]'); if(!e) return null; e.scrollIntoView({block:'nearest', inline:'nearest'}); const r=e.getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2}; })()`);
   if (!box) throw new Error("card not found: " + title);
@@ -84,6 +85,48 @@ await shot("canvas-loading");
 await sleep(1300);
 { const c = await canvasImg(); if (!c?.shown || !c.src.includes("branding")) throw new Error("branding not on canvas: " + JSON.stringify(c)); console.log("ok: branding on canvas"); }
 await shot("canvas-branding");
+
+// theme: the template's own look is the first, active swatch; presets, colours and fonts restyle the canvas live
+const art = () => evalJs(`document.querySelector('#canvas .page .art')?.innerHTML ?? ''`);
+async function clickAt(expr) {
+  const box = await evalJs(`(() => { const e=${expr}; if(!e) return null; e.scrollIntoView({block:'center'}); const r=e.getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2}; })()`);
+  if (!box) throw new Error("not found: " + expr);
+  await sleep(200);
+  for (const type of ["mousePressed", "mouseReleased"]) await send("Input.dispatchMouseEvent", { type, x: box.x, y: box.y, button: "left", clickCount: 1 });
+  await sleep(400);
+}
+expect(await text(), "Template");
+if (!(await evalJs(`document.querySelector('#root button[aria-label="#ece4d6, #111111, #e1663c"]')?.getAttribute('aria-pressed')`) === "true")) throw new Error("template swatch not active");
+console.log("ok: template look is the active swatch");
+await clickAt(`document.querySelector('#root button[aria-label="#141b34, #ffffff, #f5c451"]')`);
+{ const a = await art(); if (!a.includes("#141B34") || !a.includes("Anton")) throw new Error("Midnight not on canvas"); expect(await text(), "Midnight"); }
+await shot("theme-midnight");
+await clickAt(`[...document.querySelectorAll('#root button')].filter(b=>b.textContent.trim()==='Anton')[0]`);
+await clickAt(`[...document.querySelectorAll('[role=option], [role=menuitemradio], li')].find(e=>e.textContent.trim()==='Playfair Display')`);
+{ const a = await art(); if (!a.includes("Playfair Display")) throw new Error("heading font not on canvas"); expect(await text(), "Custom"); }
+await shot("theme-font-playfair");
+await clickAt(`[...document.querySelectorAll('#root button')].find(b=>(b.getAttribute('aria-label')??'').toLowerCase()==='#141b34')`);
+await shot("theme-color-open");
+{
+  const ok = await evalJs(`(() => { const i=[...document.querySelectorAll('input')].find(i=>/141b34/i.test(i.value)); if(!i) return [...document.querySelectorAll('input')].map(i=>i.value).join('|'); i.focus(); i.select(); return true; })()`);
+  if (ok !== true) throw new Error("hex input not found: " + ok);
+  await send("Input.insertText", { text: "7A1F3D" });
+  await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+  await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+  await sleep(500);
+  const a = (await art()).toLowerCase();
+  if (!a.includes("#7a1f3d")) throw new Error("background colour not on canvas");
+  console.log("ok: background colour edit restyles the canvas");
+}
+await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+await sleep(300);
+await shot("theme-color-edited");
+await evalJs(`[...document.querySelectorAll('#root [role=tab]')].find(t=>t.textContent.includes('Customize')).click()`);
+await sleep(400);
+{ const t = await text(); expect(t, "Alternate colors every other slide"); expect(t, "Custom"); expect(await evalJs(`[...document.querySelectorAll('#root button')].some(b=>b.textContent.trim()==='Playfair Display')`) ? "Playfair Display" : "", "Playfair Display"); }
+await shot("customize-theme");
+await evalJs(`[...document.querySelectorAll('#root [role=tab]')].find(t=>t.textContent.includes('Create')).click()`);
+await sleep(400);
 
 // scroll the row with the kit carousel's own arrow
 const next = await evalJs(`(() => { const b=[...document.querySelectorAll('#root button')].find(b=>/next|forward|right/i.test(b.getAttribute('aria-label')??'')); if(!b) return null; const r=b.getBoundingClientRect(); return {x:r.x+r.width/2,y:r.y+r.height/2,l:b.getAttribute('aria-label')}; })()`);

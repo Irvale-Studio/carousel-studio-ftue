@@ -1,21 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" width="1080" height="1350">
-  <defs>
-    <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
-  </defs>
+  <defs><filter id="soft"><feGaussianBlur stdDeviation="18"/></filter></defs>
   <rect width="1080" height="1350" fill="#F7E3E6"/>
   <g filter="url(#soft)">
-    <circle cx="180" cy="1010" r="150" fill="#F2A7B8"/>
-    <circle cx="420" cy="1120" r="170" fill="#F7C9D3"/>
-    <circle cx="700" cy="1040" r="150" fill="#E77C9A"/>
-    <circle cx="930" cy="1160" r="170" fill="#F4D36B"/>
-    <circle cx="560" cy="1290" r="160" fill="#8DB07A"/>
-    <circle cx="120" cy="1280" r="140" fill="#6F9A64"/>
-    <circle cx="860" cy="900" r="110" fill="#C9A3E0"/>
+    <circle cx="180" cy="1010" r="150" fill="#3D5AFE" opacity="0.35"/>
+    <circle cx="420" cy="1120" r="170" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="700" cy="1040" r="150" fill="#3D5AFE" opacity="0.6"/>
+    <circle cx="930" cy="1160" r="170" fill="#F4D36B" opacity="0.9"/>
+    <circle cx="560" cy="1290" r="160" fill="#8DB07A" opacity="0.9"/>
+    <circle cx="120" cy="1280" r="140" fill="#3A2A30" opacity="0.45"/>
+    <circle cx="860" cy="900" r="110" fill="#E77C9A" opacity="0.7"/>
   </g>
   <rect x="80" y="150" width="840" height="96" rx="6" fill="#3D5AFE"/>
-  <text x="112" y="216" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="52" fill="#FFFFFF" textLength="776" lengthAdjust="spacingAndGlyphs">5 HABITS that changed my life</text>
-  <g font-family="Georgia, serif" font-size="40" fill="#3A2A30">
+  <text x="112" y="216" font-family="Montserrat, Arial, sans-serif" font-weight="800" font-size="52" fill="#F7E3E6" textLength="776" lengthAdjust="spacingAndGlyphs">5 HABITS that changed my life</text>
+  <g font-family="Lora, Georgia, serif" font-weight="400" font-size="40" fill="#3A2A30">
     <text x="84" y="350">Quiet mornings, long walks</text>
     <text x="84" y="405">and saying no more often.</text>
-  </g>
-</svg>
+  </g></svg>

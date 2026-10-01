@@ -4,7 +4,8 @@ import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { TestAppUiProvider, Box, Columns, Column, Rows, Text, Title, Button, Select, LoadingIndicator } from "@canva/app-ui-kit";
 import { MoreHorizontalIcon } from "@canva/app-ui-kit/icons";
-import { CarouselStudio, type OpenUrl, type Plan, type Step, type Template, type Version } from "./App";
+import { CarouselStudio, type OpenUrl, type Plan, type Step, type Template, type Theme, type Version } from "./App";
+import { TEMPLATE_ART } from "./templateArt";
 
 /**
  * Canva's own "You are about to leave Canva" dialog (captured on the Engyne Figma board, screen 42).
@@ -65,9 +66,10 @@ function LeaveCanvaDialog() {
 
 /**
  * The Canva editor canvas: one blank page until the app opens a template, then a short load and the
- * template fades in. Preview host chrome (#canvas); in the app the SDK adds the pages to the design.
+ * template fades in, drawn in the app's current theme (colours and fonts update live). Preview host
+ * chrome (#canvas); in the app the SDK adds the pages to the design and restyles them.
  */
-function Canvas({ template }: { template: Template | null }) {
+function Canvas({ template, theme }: { template: Template | null; theme: Theme | null }) {
   const [loaded, setLoaded] = useState<string | null>(null);
   useEffect(() => {
     if (!template) return;
@@ -78,7 +80,16 @@ function Canvas({ template }: { template: Template | null }) {
   return (
     <div className="page" aria-label={template ? `Design page: ${template.title}` : "Blank design page"}>
       {template && loaded !== template.id && <div className="loading"><LoadingIndicator /></div>}
-      {template && <img key={template.id} src={template.thumbnailUrl} alt={template.title} className={loaded === template.id ? "shown" : ""} />}
+      {template && (
+        <div
+          key={template.id}
+          role="img"
+          data-template={template.id}
+          aria-label={template.title}
+          className={loaded === template.id ? "art shown" : "art"}
+          dangerouslySetInnerHTML={{ __html: TEMPLATE_ART[template.id](theme ?? template.theme) }}
+        />
+      )}
     </div>
   );
 }
@@ -118,6 +129,7 @@ function Preview() {
     VERSIONS.find((o) => o.value === `v${q.get("v")}`)?.value ?? VERSIONS[0].value,
   );
   const [template, setTemplate] = useState<Template | null>(null);
+  const [theme, setTheme] = useState<Theme | null>(null);
   const choose = (v: Version) => {
     const url = new URL(location.href);
     url.searchParams.set("v", v.slice(1));
@@ -138,7 +150,7 @@ function Preview() {
         </TestAppUiProvider>,
         document.getElementById("version")!,
       )}
-      {createPortal(<Canvas template={template} />, document.getElementById("canvas")!)}
+      {createPortal(<Canvas template={template} theme={theme} />, document.getElementById("canvas")!)}
       <CarouselStudio
         version={version}
         initialTab={q.get("tab") ?? "create"}
@@ -147,6 +159,7 @@ function Preview() {
         initialCredits={!plan && q.has("credits") ? Number(q.get("credits")) : undefined}
         openUrl={openViaCanvaDialog}
         onOpenTemplate={setTemplate}
+        onThemeChange={setTheme}
       />
       <LeaveCanvaDialog />
     </>

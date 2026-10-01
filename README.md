@@ -32,7 +32,9 @@ Same credits and checkout as V4. On Create, above the topic box:
 - **Templates row:** kit `Carousel` of `ImageCard`s (the first 6 templates), with the kit's own scroll arrows, and a See all `LinkButton`.
 - **See all** (`?step=templates`): `SurfaceHeader` back, a search `TextInput` and every template in a two-column `Grid`. Picking a template keeps the user on this screen, like Canva.
 - **Pick:** the card shows as selected and the app calls `onOpenTemplate(template)`. The preview's canvas (a blank Instagram portrait page) shows a loader, then the template. In the app, `openTemplateInDesign` in `App.tsx` is the TODO: add the template's pages to the design with the Canva Apps SDK.
-- The template art is stand-in artwork (`preview/public/templates/*.svg`); the real list and thumbnails come from the backend.
+- **Theme** (every version; on Create, Customize and Review, one shared theme): five preset themes as kit `Swatch`es (background, text, accent), with the picked template's own look first; the three colours as kit `ColorSelector`s; Heading font and Body font `Select`s (8 Google Fonts). Any edit makes the theme "Custom". The app reports it through `onThemeChange(theme)`; the preview canvas restyles the open template live. In the app, `applyThemeToDesign` in `App.tsx` is the TODO (restyle the design, send the theme with generation).
+- The template art is stand-in artwork drawn from a theme (`preview/src/templateArt.ts`). `npm run templates` writes the thumbnails (`preview/public/templates/*.svg`) and checks `App.tsx` agrees with it.
+- The real template list and thumbnails come from the backend.
 
 ### V4 in detail
 
@@ -135,7 +137,7 @@ With the dev server running (or pass the live URL as the second argument):
 ```bash
 node qa/v4-walk.mjs out/walk                 # full V4 flow, real clicks, screenshot per step
 node qa/theme-after-dialog.mjs out/theme     # kit colours survive the leave-Canva dialog
-node qa/v5-templates.mjs out/templates       # V5 template row, See all, search, canvas load
+node qa/v5-templates.mjs out/templates       # V5 template row, theme (presets, colours, fonts), See all, search, canvas
 ```
 
 Both need Chrome (set `CHROME` to its path if it is not the default Windows install). Look at the screenshots too; a pass only covers what the script asserts.
