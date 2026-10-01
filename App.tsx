@@ -22,10 +22,10 @@ import {
   AppUiProvider, Rows, Columns, Column, Box, Text, Title, Button, Alert, Badge,
   Tabs, TabList, Tab, TabPanels, TabPanel, FormField, MultilineInput, NumberInput,
   TextInput, Select, RadioGroup, Checkbox, FileInput, Swatch, Link, LinkButton,
-  ProgressBar, Avatar, SurfaceHeader, Scrollable, ImageCard, LoadingIndicator,
+  ProgressBar, Avatar, SurfaceHeader, Scrollable, ImageCard, LoadingIndicator, Carousel, Grid,
 } from "@canva/app-ui-kit";
 import {
-  ArrowLeftIcon, ArrowRightIcon, CheckIcon, CogIcon, LightBulbIcon, PlusIcon, PremiumAppsProgramProFilledGoldIcon, StarFilledIcon, StarIcon,
+  ArrowLeftIcon, ArrowRightIcon, CheckIcon, CogIcon, LightBulbIcon, PlusIcon, PremiumAppsProgramProFilledGoldIcon, SearchIcon, StarFilledIcon, StarIcon,
 } from "@canva/app-ui-kit/icons";
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -47,13 +47,37 @@ const V2_START_CREDITS = 15;
  *      No credit row on Create and no credit costs in the AI model picker. Outlines are free; on
  *      Review the only CTA is Start free trial (design cost underneath), which goes straight to
  *      the website checkout. The panel waits and returns the user to Review with the trial credits.
+ * v5 = Template quick pick: v4, plus a Templates row at the top of Create (sideways scroll + See all,
+ *      the Canva way). Picking a template opens it on the canvas.
  */
-export type Version = "v1" | "v2" | "v3" | "v4";
+export type Version = "v1" | "v2" | "v3" | "v4" | "v5";
+/** v4 and v5 share the credit limit paywall flow. */
+const paywallFlow = (v: Version) => v === "v4" || v === "v5";
 
 // Never translate credits into "N carousels": the cost varies with slides, model and images.
 
 export type Step =
-  | "create" | "connect" | "genOutline" | "review" | "genSlides" | "success" | "recent" | "checkout";
+  | "create" | "connect" | "genOutline" | "review" | "genSlides" | "success" | "recent" | "checkout" | "templates";
+
+/**
+ * v5 templates. The artwork here is preview stand-in art; in the app the list and thumbnails come
+ * from the backend. Paths are string literals so the one-file build can inline them.
+ */
+export type Template = { id: string; title: string; thumbnailUrl: string };
+const TEMPLATES: Template[] = [
+  { id: "branding", title: "Branding is more than just looks", thumbnailUrl: "/templates/branding.svg" },
+  { id: "focus", title: "How to stay focused in a distracted world", thumbnailUrl: "/templates/focus.svg" },
+  { id: "niche", title: "How to find your niche", thumbnailUrl: "/templates/niche.svg" },
+  { id: "mindset", title: "Mindset shifts that will accelerate your career", thumbnailUrl: "/templates/mindset.svg" },
+  { id: "healthy", title: "Healthy lifestyle tips", thumbnailUrl: "/templates/healthy.svg" },
+  { id: "habits", title: "5 habits that changed my life", thumbnailUrl: "/templates/habits.svg" },
+  { id: "timeblock", title: "Time blocking tips for business owners", thumbnailUrl: "/templates/timeblock.svg" },
+  { id: "simple", title: "Simple ways I show up for myself", thumbnailUrl: "/templates/simple.svg" },
+];
+/** How many templates the quick-pick row shows before See all. */
+const QUICK_TEMPLATES = 6;
+/** Instagram portrait, 1080 x 1350. */
+const TEMPLATE_ASPECT = 1080 / 1350;
 type Recent = { title: string; date: string };
 
 const INSPIRE = [
@@ -140,20 +164,24 @@ const openInCanva: OpenUrl = async (url) => {
 let openUrl: OpenUrl = openInNewTab;
 const openExternal = (url: string) => openUrl(url);
 
+// TODO (wire to the real app): add the template's pages to the design via the Canva Apps SDK.
+const openTemplateInDesign = (_t: Template) => {};
+
 export function App() {
   return (
     <AppUiProvider>
-      <CarouselStudio openUrl={openInCanva} />
+      <CarouselStudio openUrl={openInCanva} onOpenTemplate={openTemplateInDesign} />
     </AppUiProvider>
   );
 }
 
 /** Canva gives the app the full panel height; content scrolls inside it. */
 export function CarouselStudio({
-  version = "v4", initialTab = "create", initialStep = "create", initialAccount, initialCredits, openUrl: open = openInNewTab,
+  version = "v5", initialTab = "create", initialStep = "create", initialAccount, initialCredits, openUrl: open = openInNewTab,
+  onOpenTemplate = () => {},
 }: {
   version?: Version; initialTab?: string; initialStep?: Step; initialAccount?: Account; initialCredits?: number;
-  openUrl?: OpenUrl;
+  openUrl?: OpenUrl; onOpenTemplate?: (t: Template) => void;
 }) {
   openUrl = open;
   return (
@@ -164,6 +192,7 @@ export function CarouselStudio({
       initialStep={initialStep}
       initialAccount={initialAccount}
       initialCredits={initialCredits}
+      onOpenTemplate={onOpenTemplate}
     />
   );
 }
@@ -184,8 +213,11 @@ function Panel({ children, footer }: { children: ReactNode; footer?: ReactNode }
 }
 
 function Screens({
-  version, initialTab, initialStep, initialAccount, initialCredits,
-}: { version: Version; initialTab: string; initialStep: Step; initialAccount?: Account; initialCredits?: number }) {
+  version, initialTab, initialStep, initialAccount, initialCredits, onOpenTemplate,
+}: {
+  version: Version; initialTab: string; initialStep: Step; initialAccount?: Account; initialCredits?: number;
+  onOpenTemplate: (t: Template) => void;
+}) {
   const starter = version === "v2" || version === "v3"; // v2 and v3 start every user with credits
   const [loggedIn, setLoggedIn] = useState(initialAccount !== undefined);
   const [plan, setPlan] = useState<Plan>(initialAccount?.plan ?? "free");
@@ -210,6 +242,8 @@ function Screens({
   const [model, setModel] = useState("auto");
   const [visuals, setVisuals] = useState("stock");
   const [recents, setRecents] = useState<Recent[]>(initialAccount ? SEED_RECENTS : []);
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const pickTemplate = (t: Template) => { setTemplateId(t.id); onOpenTemplate(t); };
 
   // outline and slide generation auto-advance, matching the live app
   useEffect(() => {
@@ -248,7 +282,7 @@ function Screens({
 
   // v4: every upgrade entry point goes straight to website checkout and the panel waits.
   const upgradeFrom = (from: Step) =>
-    version === "v4" ? () => { setConnectReturn(from); openCheckout(); } : startTrial;
+    paywallFlow(version) ? () => { setConnectReturn(from); openCheckout(); } : startTrial;
 
   // v4 checkout: the website opens in a new tab and the panel waits. In the app the trial arrives
   // from the backend (poll or webhook); the preview's "I've started my trial" stands in for it.
@@ -272,7 +306,7 @@ function Screens({
   }
 
   // v4 pins the main CTA (Generate outline, Start free trial / Create design) to the bottom of the panel.
-  const sticky = version === "v4";
+  const sticky = paywallFlow(version);
   const generateOutline = (
     <Button variant="primary" stretch onClick={() => (topic.trim() === "" ? setTopicError(true) : setStep("genOutline"))}>
       Generate outline
@@ -345,6 +379,9 @@ function Screens({
     );
   }
   if (step === "recent") return <RecentList recents={recents} onBack={() => setStep("create")} />;
+  if (step === "templates") {
+    return <TemplateBrowser selectedId={templateId} onPick={pickTemplate} onBack={() => setStep("create")} />;
+  }
 
   return (
     <Rows spacing="2u">
@@ -358,7 +395,7 @@ function Screens({
           onDelivered={() => setCreditedFrom(null)}
           onUpgrade={upgradeFrom("create")}
         />
-      ) : version === "v4" ? null : starter ? (
+      ) : paywallFlow(version) ? null : starter ? (
         <StarterCredits
           credits={credits}
           prompt={version === "v3" ? "pro" : "google"}
@@ -379,6 +416,10 @@ function Screens({
           <TabPanel id="create">
             <Box paddingTop="2u">
               <Rows spacing="2u">
+                {version === "v5" && (
+                  <TemplateRow selectedId={templateId} onPick={pickTemplate} onSeeAll={() => setStep("templates")} />
+                )}
+
                 <FormField
                   label="What's your carousel about?"
                   error={topicError ? "Add a topic to generate an outline" : undefined}
@@ -426,7 +467,7 @@ function Screens({
                 <FormField
                   label="AI model"
                   control={(props) => (
-                    <Select {...props} stretch value={model} onChange={setModel} options={version === "v4" ? AI_MODELS_NO_COST : AI_MODELS} />
+                    <Select {...props} stretch value={model} onChange={setModel} options={paywallFlow(version) ? AI_MODELS_NO_COST : AI_MODELS} />
                   )}
                 />
 
@@ -786,7 +827,7 @@ function ReviewCta({
   // (v2: connect Google, v3: upgrade to Pro). v4 starts on 0 credits: Start free trial, straight to checkout.
   const cta: "create" | "login" | "connect" | "upgrade" | "trial" | "topup" =
     enough && (loggedIn || version !== "v1") ? "create"
-    : version === "v4" && plan === "free" ? "trial"
+    : paywallFlow(version) && plan === "free" ? "trial"
     : !loggedIn ? (version === "v2" ? "connect" : version === "v3" ? "upgrade" : "login")
     : plan === "pro" ? "topup" : "upgrade";
   const shortBy = `A design uses ${RENDER_COST} credits. You have ${credits}.`;
@@ -1198,6 +1239,72 @@ function Learn({ onStart }: { onStart: (firstTopic: string) => void }) {
           </Rows>
         </Box>
       ))}
+    </Rows>
+  );
+}
+
+/** v5 Create tab: a sideways-scrolling quick pick of templates, with See all for the full list. */
+function TemplateRow({
+  selectedId, onPick, onSeeAll,
+}: { selectedId: string | null; onPick: (t: Template) => void; onSeeAll: () => void }) {
+  return (
+    <Rows spacing="1u">
+      <Columns spacing="1u" alignY="center">
+        <Column><Text variant="bold">Templates</Text></Column>
+        <Column width="content">
+          <LinkButton onClick={onSeeAll}>See all</LinkButton>
+        </Column>
+      </Columns>
+      <Carousel>
+        {TEMPLATES.slice(0, QUICK_TEMPLATES).map((t) => (
+          <ImageCard
+            key={t.id}
+            thumbnailUrl={t.thumbnailUrl}
+            alt={t.title}
+            ariaLabel={`Open template: ${t.title}`}
+            thumbnailHeight={136}
+            thumbnailAspectRatio={TEMPLATE_ASPECT}
+            borderRadius="standard"
+            selectable
+            selected={t.id === selectedId}
+            onClick={() => onPick(t)}
+          />
+        ))}
+      </Carousel>
+    </Rows>
+  );
+}
+
+/** v5 See all: every template in a two-column grid, with search. Picking one keeps the user here. */
+function TemplateBrowser({
+  selectedId, onPick, onBack,
+}: { selectedId: string | null; onPick: (t: Template) => void; onBack: () => void }) {
+  const [query, setQuery] = useState("");
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = TEMPLATES.filter((t) => words.every((w) => t.title.toLowerCase().includes(w)));
+  return (
+    <Rows spacing="2u">
+      <SurfaceHeader title="Templates" start={{ ariaLabel: "Back", onClick: onBack }} />
+      <TextInput value={query} onChange={setQuery} placeholder="Search templates" start={<SearchIcon />} />
+      {shown.length === 0 ? (
+        <Text tone="secondary" alignment="center">No templates match your search.</Text>
+      ) : (
+        <Grid columns={2} spacing="1u">
+          {shown.map((t) => (
+            <ImageCard
+              key={t.id}
+              thumbnailUrl={t.thumbnailUrl}
+              alt={t.title}
+              ariaLabel={`Open template: ${t.title}`}
+              thumbnailAspectRatio={TEMPLATE_ASPECT}
+              borderRadius="standard"
+              selectable
+              selected={t.id === selectedId}
+              onClick={() => onPick(t)}
+            />
+          ))}
+        </Grid>
+      )}
     </Rows>
   );
 }

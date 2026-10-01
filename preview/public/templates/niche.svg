@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" width="1080" height="1350">
+  <defs>
+    <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="3" r="2.2" fill="#D9DCE6"/>
+    </pattern>
+  </defs>
+  <rect width="1080" height="1350" fill="#FFFFFF"/>
+  <rect width="1080" height="1350" fill="url(#dots)"/>
+  <text x="90" y="120" font-family="Arial, sans-serif" font-size="28" letter-spacing="5" fill="#1F2A5A">FRANCOIS MERCER</text>
+  <circle cx="950" cy="112" r="40" fill="none" stroke="#2B3FA0" stroke-width="4"/>
+  <path d="M928 112 h40 M952 96 l16 16 -16 16" fill="none" stroke="#2B3FA0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <g font-family="Impact, 'Arial Narrow Bold', 'Arial Black', sans-serif" font-size="230" fill="#1F2A5A">
+    <text x="84" y="470" textLength="560" lengthAdjust="spacingAndGlyphs">HOW TO</text>
+    <text x="84" y="720" textLength="880" lengthAdjust="spacingAndGlyphs">FIND YOUR</text>
+    <text x="84" y="970" textLength="610" lengthAdjust="spacingAndGlyphs">NICHE</text>
+  </g>
+  <rect x="84" y="1080" width="996" height="56" fill="#2B3FA0"/>
+  <text x="90" y="1250" font-family="Arial, sans-serif" font-size="26" letter-spacing="4" fill="#1F2A5A">REALLYGREATSITE.COM</text>
+</svg>

@@ -1,10 +1,10 @@
 import "@canva/app-ui-kit/styles.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
-import { TestAppUiProvider, Box, Columns, Column, Rows, Text, Title, Button, Select } from "@canva/app-ui-kit";
+import { TestAppUiProvider, Box, Columns, Column, Rows, Text, Title, Button, Select, LoadingIndicator } from "@canva/app-ui-kit";
 import { MoreHorizontalIcon } from "@canva/app-ui-kit/icons";
-import { CarouselStudio, type OpenUrl, type Plan, type Step, type Version } from "./App";
+import { CarouselStudio, type OpenUrl, type Plan, type Step, type Template, type Version } from "./App";
 
 /**
  * Canva's own "You are about to leave Canva" dialog (captured on the Engyne Figma board, screen 42).
@@ -63,9 +63,29 @@ function LeaveCanvaDialog() {
   );
 }
 
+/**
+ * The Canva editor canvas: one blank page until the app opens a template, then a short load and the
+ * template fades in. Preview host chrome (#canvas); in the app the SDK adds the pages to the design.
+ */
+function Canvas({ template }: { template: Template | null }) {
+  const [loaded, setLoaded] = useState<string | null>(null);
+  useEffect(() => {
+    if (!template) return;
+    setLoaded(null);
+    const t = setTimeout(() => setLoaded(template.id), 900);
+    return () => clearTimeout(t);
+  }, [template]);
+  return (
+    <div className="page" aria-label={template ? `Design page: ${template.title}` : "Blank design page"}>
+      {template && loaded !== template.id && <div className="loading"><LoadingIndicator /></div>}
+      {template && <img key={template.id} src={template.thumbnailUrl} alt={template.title} className={loaded === template.id ? "shown" : ""} />}
+    </div>
+  );
+}
+
 // Preview host only. Canva draws the panel header (app name, feedback, more) above the app iframe;
 // #header stands in for it. #version is the prototype version switch, outside the panel.
-// ?v=1|2|3|4, ?tab=customize|learn, ?step=connect|review|success|checkout and ?plan=free|pro
+// ?v=1|2|3|4|5, ?tab=customize|learn, ?step=connect|review|success|checkout|templates and ?plan=free|pro
 // open those states. ?credits=N sets the balance (the account's with ?plan, the starter balance without).
 const q = new URLSearchParams(location.search);
 const plan = q.get("plan") as Plan | null;
@@ -86,6 +106,7 @@ createRoot(document.getElementById("header")!).render(
 
 // Newest first; the newest is the default.
 const VERSIONS: { value: Version; label: string }[] = [
+  { value: "v5", label: "V5 - Template quick pick" },
   { value: "v4", label: "V4 - Credit limit paywall flow" },
   { value: "v3", label: "V3 - Credits straight away, prompt for Pro after" },
   { value: "v2", label: "V2 - Credits straight away, prompt for Google after" },
@@ -96,11 +117,13 @@ function Preview() {
   const [version, setVersion] = useState<Version>(
     VERSIONS.find((o) => o.value === `v${q.get("v")}`)?.value ?? VERSIONS[0].value,
   );
+  const [template, setTemplate] = useState<Template | null>(null);
   const choose = (v: Version) => {
     const url = new URL(location.href);
     url.searchParams.set("v", v.slice(1));
     history.replaceState(null, "", url);
     setVersion(v);
+    setTemplate(null);
   };
   return (
     <>
@@ -115,6 +138,7 @@ function Preview() {
         </TestAppUiProvider>,
         document.getElementById("version")!,
       )}
+      {createPortal(<Canvas template={template} />, document.getElementById("canvas")!)}
       <CarouselStudio
         version={version}
         initialTab={q.get("tab") ?? "create"}
@@ -122,6 +146,7 @@ function Preview() {
         initialAccount={account}
         initialCredits={!plan && q.has("credits") ? Number(q.get("credits")) : undefined}
         openUrl={openViaCanvaDialog}
+        onOpenTemplate={setTemplate}
       />
       <LeaveCanvaDialog />
     </>

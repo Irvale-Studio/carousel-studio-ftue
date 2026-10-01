@@ -3,12 +3,15 @@ import fs from "node:fs";
 import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 
-// The app points at the logo by URL ("/carousel-studio-logomark.svg"); inline it so file:// works.
-const logo = "data:image/svg+xml;base64," + fs.readFileSync("public/carousel-studio-logomark.svg").toString("base64");
+// The app points at the logo and the v5 template art by URL ("/carousel-studio-logomark.svg",
+// "/templates/<id>.svg"); inline them so file:// works.
+const dataUri = (file: string) => "data:image/svg+xml;base64," + fs.readFileSync(`public${file}`).toString("base64");
 const inlineLogo = {
   name: "inline-logo",
   transform(code: string, id: string) {
-    return id.endsWith("App.tsx") ? code.replace('"/carousel-studio-logomark.svg"', JSON.stringify(logo)) : null;
+    return id.endsWith("App.tsx")
+      ? code.replace(/"(\/carousel-studio-logomark\.svg|\/templates\/[a-z-]+\.svg)"/g, (_m, file) => JSON.stringify(dataUri(file)))
+      : null;
   },
 };
 

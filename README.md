@@ -12,18 +12,27 @@ A redesign of the first-run flow in the Carousel Studio Canva app, built only wi
 
 **Live prototype:** https://carousel-studio-ftue.vercel.app (opens on the newest version; switch with the dropdown at the top right)
 
-## Four versions
+## Five versions
 
 A dropdown at the top right of the prototype switches between them. It opens on the newest.
 
 | Version | How credits work |
 | --- | --- |
+| V5 - Template quick pick | V4, plus a Templates row at the top of Create: a sideways-scrolling quick pick and See all, the way Canva shows templates. Picking a template opens it on the canvas. Details below. |
 | V4 - Credit limit paywall flow | Every user starts with 0 credits and the app does not say so. Review offers one button, Start free trial, which goes straight to checkout on the website. Details below. |
 | V3 - Credits straight away, prompt for Pro after | Every user starts on the Free plan with 15 credits and can create a design without signing in. When they run low or cannot afford a design, the account row, the Review button and the success screen all point to upgrading to Pro (pricing page). |
 | V2 - Credits straight away, prompt for Google after | Every user starts on the Free plan with 15 credits and can create a design without signing in. When they run low or cannot afford a design, the account row, the Review button and the success screen all point to connecting Google for 50 more. After connecting, the Pro upgrade takes over. |
 | V1 - No credits until login | Credits arrive only when the user connects Google (50). The home screen leads with the claim offer and Review asks the user to log in before creating. |
 
-In code: `CarouselStudio` takes `version="v4"` (default), `"v3"`, `"v2"` or `"v1"`. Starter credits are `V2_START_CREDITS`.
+In code: `CarouselStudio` takes `version="v5"` (default), `"v4"`, `"v3"`, `"v2"` or `"v1"`. Starter credits are `V2_START_CREDITS`.
+
+### V5 in detail
+
+Same credits and checkout as V4. On Create, above the topic box:
+- **Templates row:** kit `Carousel` of `ImageCard`s (the first 6 templates), with the kit's own scroll arrows, and a See all `LinkButton`.
+- **See all** (`?step=templates`): `SurfaceHeader` back, a search `TextInput` and every template in a two-column `Grid`. Picking a template keeps the user on this screen, like Canva.
+- **Pick:** the card shows as selected and the app calls `onOpenTemplate(template)`. The preview's canvas (a blank Instagram portrait page) shows a loader, then the template. In the app, `openTemplateInDesign` in `App.tsx` is the TODO: add the template's pages to the design with the Canva Apps SDK.
+- The template art is stand-in artwork (`preview/public/templates/*.svg`); the real list and thumbnails come from the backend.
 
 ### V4 in detail
 
@@ -60,6 +69,7 @@ To open a state directly, add one of these to the end of the file's address in t
 | `?plan=pro` | Logged in, Pro plan |
 | `?plan=pro&credits=32` | Pro, running low (Purchase extra credits) |
 | `?step=checkout` | V4 waiting for checkout |
+| `?step=templates` | V5 See all templates |
 | `?step=connect` | Connect screen |
 | `?step=review` | Review, logged out |
 | `?step=success&plan=free` | Success with the Pro offer |
@@ -125,8 +135,9 @@ With the dev server running (or pass the live URL as the second argument):
 ```bash
 node qa/v4-walk.mjs out/walk                 # full V4 flow, real clicks, screenshot per step
 node qa/theme-after-dialog.mjs out/theme     # kit colours survive the leave-Canva dialog
+node qa/v5-templates.mjs out/templates       # V5 template row, See all, search, canvas load
 ```
 
 Both need Chrome (set `CHROME` to its path if it is not the default Windows install). Look at the screenshots too; a pass only covers what the script asserts.
 
-`AppUiProvider` only works inside Canva, so the local preview (`preview/src/main.tsx`) wraps the app in the kit's `TestAppUiProvider` and draws stand-ins for Canva's own UI: the panel header and the leave-Canva dialog. `preview/src/App.tsx` is the same file as `App.tsx` at the top level.
+`AppUiProvider` only works inside Canva, so the local preview (`preview/src/main.tsx`) wraps the app in the kit's `TestAppUiProvider` and draws stand-ins for Canva's own UI: the panel header, the editor canvas and the leave-Canva dialog. `preview/src/App.tsx` is the same file as `App.tsx` at the top level.

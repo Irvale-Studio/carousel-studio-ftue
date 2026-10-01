@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1350" width="1080" height="1350">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1E3B2C"/>
+      <stop offset="0.5" stop-color="#3F6E57"/>
+      <stop offset="1" stop-color="#7DBDB0"/>
+    </linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+  <rect width="1080" height="1350" fill="url(#g)"/>
+  <g filter="url(#blur)" opacity="0.6">
+    <ellipse cx="540" cy="1150" rx="520" ry="160" fill="#9ED8CC"/>
+    <circle cx="140" cy="260" r="200" fill="#12261C"/>
+    <circle cx="960" cy="200" r="220" fill="#12261C"/>
+  </g>
+  <g font-family="Georgia, 'Times New Roman', serif" font-size="108" fill="#FFFFFF" text-anchor="middle">
+    <text x="540" y="560">Simple ways I</text>
+    <text x="540" y="680">show up for</text>
+    <text x="540" y="800">myself</text>
+  </g>
+</svg>
